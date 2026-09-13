@@ -22,7 +22,7 @@ export function replay(moves: number[]) {
 
 export function useFriendGame(id: string) {
   const match = useMatch(id);
-  const { myColor, others, moves, round, ready } = match;
+  const { seat, myColor, opponentSeated, watching, moves, round, ready } = match;
   const chimedFor = useRef("");
 
   const { board, last, turn, played } = useMemo(() => replay(moves), [moves]);
@@ -30,10 +30,10 @@ export function useFriendGame(id: string) {
   const over = result !== EMPTY || isFull(board);
   const winningLine = useMemo(() => (result !== EMPTY ? winningCells(board) : []), [board, result]);
 
-  const joined = others > 0;
-  const waiting = !joined && played === 0;
+  const joined = opponentSeated;
+  const waiting = seat !== "spectator" && !joined && played === 0;
   const mine = myColor !== null && turn === myColor;
-  const copy = friendCopy({ moves: played, over, result, myColor, mine, joined, waiting });
+  const copy = friendCopy({ seat, moves: played, over, result, myColor, mine, joined, waiting, watching });
   const roundKey = `${round}:${played}`;
 
   useEffect(() => {
@@ -49,12 +49,14 @@ export function useFriendGame(id: string) {
     last,
     winningLine,
     over,
+    seat,
     joined,
     waiting,
     canPlay: ready && !over && mine,
     copy,
     roundKey,
     playMove: match.playMove,
+    canRematch: seat !== "spectator",
     rematch: match.rematch,
   };
 }

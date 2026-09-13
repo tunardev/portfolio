@@ -1,16 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { COLS, FIRST, SECOND, type Player } from "./engine";
-import { isRealtimeConfigured, realtime } from "@/lib/realtime";
-
-export type Role = "host" | "guest";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { isRealtimeConfigured, matchId, realtime } from "@/lib/realtime";
+import { COLS } from "./engine";
+import {
+  EMPTY_SEATS,
+  SEAT_GRACE_MS,
+  assignSeats,
+  colorOf,
+  holdingSeats,
+  nextExpiry,
+  seatOf,
+  type Occupant,
+  type Sighting,
+} from "./seats";
 
 type Sync = { moves: number[]; round: number };
 
 const EMPTY_SYNC: Sync = { moves: [], round: 0 };
+const HEARTBEAT_MS = 5_000;
+const EXPIRY_SLACK_MS = 50;
 
 const stateKey = (id: string) => `match:${id}`;
-export const seatKey = (id: string) => `match:${id}:seat`;
+const clientKey = (id: string) => `match:${id}:client`;
+const sinceKey = (id: string) => `match:${id}:since`;
+const seenKey = (id: string) => `match:${id}:seen`;
 
 const listeners = new Set<() => void>();
 
@@ -29,10 +42,14 @@ function readItem(key: string) {
   }
 }
 
-function writeSync(id: string, next: Sync) {
+function writeItem(key: string, value: string) {
   try {
-    localStorage.setItem(stateKey(id), JSON.stringify(next));
+    localStorage.setItem(key, value);
   } catch {}
+}
+
+function writeSync(id: string, next: Sync) {
+  writeItem(stateKey(id), JSON.stringify(next));
   for (const listener of listeners) listener();
 }
 
@@ -61,26 +78,45 @@ export function isAhead(theirs: Sync, ours: Sync) {
   return theirs.moves.length > ours.moves.length;
 }
 
+export function claimIdentity(id: string, now = Date.now()): Occupant {
+  const clientId = readItem(clientKey(id)) ?? matchId();
+  writeItem(clientKey(id), clientId);
+
+  const lastSeen = Number(readItem(seenKey(id)) ?? 0);
+  const stored = Number(readItem(sinceKey(id)) ?? 0);
+  const kept = stored > 0 && now - lastSeen < SEAT_GRACE_MS;
+  const since = kept ? stored : now;
+
+  writeItem(sinceKey(id), String(since));
+  writeItem(seenKey(id), String(now));
+  return { clientId, since };
+}
+
 type ChannelRef = { current: RealtimeChannel | null };
 
 async function openChannel(
   id: string,
   channel: ChannelRef,
   latest: { current: Sync },
-  setOthers: (count: number) => void,
+  me: Occupant,
+  onPresence: (present: Map<string, number>) => void,
   setReady: (ready: boolean) => void,
 ) {
   const client = await realtime();
-  const seat: Role = readItem(seatKey(id)) === "host" ? "host" : "guest";
-  const presenceKey = `${seat}-${Math.random().toString(36).slice(2, 8)}`;
   const socket =
-    client?.channel(stateKey(id), { config: { presence: { key: presenceKey }, broadcast: { self: false } } }) ?? null;
+    client?.channel(stateKey(id), { config: { presence: { key: me.clientId }, broadcast: { self: false } } }) ?? null;
 
   channel.current = socket;
 
   if (socket) {
     socket.on("presence", { event: "sync" }, () => {
-      setOthers(Math.max(0, Object.keys(socket.presenceState()).length - 1));
+      const present = new Map<string, number>();
+      for (const [clientId, metas] of Object.entries(socket.presenceState())) {
+        const meta = metas[0] as { since?: unknown } | undefined;
+        const since = Number(meta?.since);
+        present.set(clientId, Number.isFinite(since) ? since : Date.now());
+      }
+      onPresence(present);
     });
 
     socket.on("broadcast", { event: "sync" }, ({ payload }) => {
@@ -94,7 +130,7 @@ async function openChannel(
 
     socket.subscribe(async (status) => {
       if (status !== "SUBSCRIBED") return;
-      await socket.track({ seat, at: Date.now() });
+      await socket.track({ clientId: me.clientId, since: me.since });
       await socket.send({ type: "broadcast", event: "hello", payload: {} });
       setReady(true);
     });
@@ -113,13 +149,14 @@ function connect(
   id: string,
   channel: ChannelRef,
   latest: { current: Sync },
-  setOthers: (count: number) => void,
+  me: Occupant,
+  onPresence: (present: Map<string, number>) => void,
   setReady: (ready: boolean) => void,
 ) {
   let cancelled = false;
   let close: (() => void) | null = null;
 
-  void openChannel(id, channel, latest, setOthers, setReady).then((teardown) => {
+  void openChannel(id, channel, latest, me, onPresence, setReady).then((teardown) => {
     if (cancelled) {
       teardown();
       return;
@@ -137,30 +174,58 @@ function connect(
 
 export function useMatch(id: string) {
   const [configured] = useState(isRealtimeConfigured);
-  const seatRaw = useSyncExternalStore(
-    subscribe,
-    () => readItem(seatKey(id)),
-    () => null,
-  );
+  const [me] = useState(() => claimIdentity(id));
+  const [sightings, setSightings] = useState<Sighting[]>([]);
+  const [present, setPresent] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const [now, setNow] = useState(() => Date.now());
+  const [ready, setReady] = useState(false);
+
+  const channel = useRef<RealtimeChannel | null>(null);
+  const latest = useRef<Sync>(EMPTY_SYNC);
+
   const syncRaw = useSyncExternalStore(
     subscribe,
     () => readItem(stateKey(id)),
     () => null,
   );
-  const [others, setOthers] = useState(0);
-  const [ready, setReady] = useState(false);
-  const channel = useRef<RealtimeChannel | null>(null);
-  const latest = useRef<Sync>(EMPTY_SYNC);
-
   const sync = useMemo(() => parseSync(syncRaw), [syncRaw]);
   useEffect(() => {
     latest.current = sync;
   }, [sync]);
 
-  const role: Role | null =
-    seatRaw === null && typeof window === "undefined" ? null : seatRaw === "host" ? "host" : "guest";
+  const onPresence = useCallback((incoming: Map<string, number>) => {
+    const seenAt = Date.now();
+    setNow(seenAt);
+    setPresent(new Set(incoming.keys()));
+    setSightings((previous) => {
+      const byId = new Map(previous.map((seen) => [seen.clientId, seen]));
+      for (const [clientId, since] of incoming) byId.set(clientId, { clientId, since, lastSeen: seenAt });
+      return [...byId.values()];
+    });
+  }, []);
 
-  useEffect(() => connect(id, channel, latest, setOthers, setReady), [id]);
+  useEffect(() => connect(id, channel, latest, me, onPresence, setReady), [id, me, onPresence]);
+
+  useEffect(() => {
+    const beat = window.setInterval(() => writeItem(seenKey(id), String(Date.now())), HEARTBEAT_MS);
+    return () => window.clearInterval(beat);
+  }, [id]);
+
+  useEffect(() => {
+    const wait = nextExpiry(sightings, present, now);
+    if (wait === null) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), wait + EXPIRY_SLACK_MS);
+    return () => window.clearTimeout(timer);
+  }, [sightings, present, now]);
+
+  const seats = useMemo(
+    () => (sightings.length ? assignSeats(holdingSeats(sightings, present, now)) : EMPTY_SEATS),
+    [sightings, present, now],
+  );
+
+  const hostMovesFirst = sync.round % 2 === 0;
+  const seat = seatOf(seats, me.clientId);
+  const myColor = colorOf(seat, hostMovesFirst);
 
   const push = useCallback(
     (next: Sync) => {
@@ -177,8 +242,16 @@ export function useMatch(id: string) {
 
   const rematch = useCallback(() => push({ moves: [], round: latest.current.round + 1 }), [push]);
 
-  const hostMovesFirst = sync.round % 2 === 0;
-  const myColor: Player | null = role === null ? null : (role === "host") === hostMovesFirst ? FIRST : SECOND;
-
-  return { role, myColor, others, moves: sync.moves, round: sync.round, ready, configured, playMove, rematch };
+  return {
+    seat,
+    myColor,
+    opponentSeated: seat === "spectator" ? seats.ink !== null && seats.red !== null : Boolean(seats.ink && seats.red),
+    watching: seats.spectators.length,
+    moves: sync.moves,
+    round: sync.round,
+    ready,
+    configured,
+    playMove,
+    rematch,
+  };
 }

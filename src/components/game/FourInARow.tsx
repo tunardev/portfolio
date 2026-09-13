@@ -5,7 +5,6 @@ import { EvalPanel } from "./EvalPanel";
 import { GameHeader } from "./GameHeader";
 import { TurnChart } from "./TurnChart";
 import { FIRST } from "./engine";
-import { seatKey } from "./useMatch";
 import { useModelGame } from "./useModelGame";
 import type { Stats } from "./stats";
 import { matchId } from "@/lib/realtime";
@@ -18,13 +17,7 @@ export function FourInARow({ onClose, stats, onStats }: Props) {
   const game = useModelGame(onStats);
   const played = game.moves.length;
 
-  const inviteFriend = () => {
-    const id = matchId();
-    try {
-      localStorage.setItem(seatKey(id), "host");
-    } catch {}
-    router.push(`/play/${id}`);
-  };
+  const inviteFriend = () => router.push(`/play/${matchId()}`);
 
   return (
     <section className={styles.game} aria-label="Four in a row against the model">

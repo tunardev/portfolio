@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { COLS } from "./engine";
-import { isAhead, seatKey, toSync } from "./useMatch";
+import { isAhead, toSync } from "./useMatch";
 
 const EMPTY_SYNC = { moves: [], round: 0 };
 
@@ -69,12 +69,6 @@ describe("isAhead", () => {
   test("an identical round and length is not ahead", () => {
     expect(isAhead({ moves: [1, 2], round: 3 }, { moves: [4, 5], round: 3 })).toBe(false);
     expect(isAhead(EMPTY_SYNC, EMPTY_SYNC)).toBe(false);
-  });
-});
-
-describe("seatKey", () => {
-  test("namespaces the seat under the match id", () => {
-    expect(seatKey("abc23xyz")).toBe("match:abc23xyz:seat");
   });
 });
 

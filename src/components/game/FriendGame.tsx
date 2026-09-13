@@ -39,7 +39,7 @@ export function FriendGame({ id }: { id: string }) {
       )}
 
       <div className={styles.actions}>
-        {game.over && (
+        {game.over && game.canRematch && (
           <button type="button" className="pill" onClick={game.rematch}>
             Rematch
           </button>

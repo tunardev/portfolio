@@ -3,6 +3,8 @@ import { EMPTY, FIRST, SECOND } from "./engine";
 import { type Standing, friendCopy } from "./friendCopy";
 
 const standing = (over: Partial<Standing> = {}): Standing => ({
+  seat: "ink",
+  watching: 0,
   moves: 0,
   over: false,
   result: EMPTY,
@@ -106,5 +108,46 @@ describe("games in progress", () => {
   test("the lede maps ink and red onto the two seats", () => {
     expect(friendCopy(standing({ myColor: FIRST })).lede).toContain("Ink is you, red is them.");
     expect(friendCopy(standing({ myColor: SECOND })).lede).toContain("Ink is them, red is you.");
+  });
+});
+
+describe("spectators are told they are watching", () => {
+  const watcher = (over: Partial<Standing> = {}) =>
+    friendCopy(standing({ seat: "spectator", myColor: null, mine: false, ...over }));
+
+  test("a spectator is never told it is their move", () => {
+    expect(watcher().title).toBe("You are watching.");
+    expect(watcher({ mine: true }).title).toBe("You are watching.");
+  });
+
+  test("a spectator never wins", () => {
+    expect(watcher({ over: true, result: FIRST }).iWon).toBe(false);
+    expect(watcher({ over: true, result: SECOND }).iWon).toBe(false);
+  });
+
+  test("a finished game names the winning colour rather than you or them", () => {
+    expect(watcher({ over: true, result: FIRST }).title).toBe("Ink won.");
+    expect(watcher({ over: true, result: SECOND }).title).toBe("Red won.");
+    expect(watcher({ over: true, result: EMPTY }).title).toBe("A draw. Rare, and fair.");
+  });
+
+  test("the kicker says watching and never whose move it is", () => {
+    const kicker = watcher({ moves: 4 }).kicker;
+    expect(kicker).toContain("watching");
+    expect(kicker).not.toContain("your move");
+    expect(kicker).not.toContain("their move");
+  });
+
+  test("a spectator is told rematch is not theirs to start", () => {
+    expect(watcher({ over: true, result: FIRST }).lede).toContain("Only the two players");
+  });
+
+  test("watcher count is pluralised", () => {
+    expect(watcher({ watching: 1 }).presence).toBe("1 watching");
+    expect(watcher({ watching: 3 }).presence).toBe("3 watching");
+  });
+
+  test("a seated player is told how many are watching", () => {
+    expect(friendCopy(standing({ watching: 2, mine: false })).presence).toContain("2 watching");
   });
 });
