@@ -1,0 +1,41 @@
+{
+  "name": "tunar.dev",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "analyze": "ANALYZE=true next build --webpack",
+    "train": "bun scripts/train.ts",
+    "doctor": "react-doctor . --no-supply-chain",
+    "prepare": "husky || true"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.115.0",
+    "@vercel/analytics": "^2.0.1",
+    "geist": "^1.7.2",
+    "gray-matter": "^4.0.3",
+    "marked": "^18.0.11",
+    "next": "16.3.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "@next/bundle-analyzer": "^16.3.5",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "husky": "^9.1.7",
+    "react-doctor": "^0.9.13",
+    "typescript": "^5"
+  }
+}
