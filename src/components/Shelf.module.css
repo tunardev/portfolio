@@ -1,0 +1,182 @@
+.shelf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  inline-size: 100%;
+  margin: var(--space-3xl) 0 0;
+}
+
+.stage {
+  position: relative;
+  inline-size: 100%;
+  block-size: 250px;
+}
+
+.inner {
+  position: relative;
+  inline-size: 100%;
+  block-size: 250px;
+}
+
+.book {
+  position: absolute;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-block-end: var(--space-lg);
+  border-radius: 2px 3px 3px 2px;
+  transform-origin: 100% 100%;
+  box-shadow: var(--shadow-spine);
+  transition:
+    transform 340ms var(--ease-settle),
+    box-shadow 340ms ease;
+}
+
+.book[data-cover="dark"] {
+  box-shadow: var(--shadow-spine-dark);
+}
+
+.book[data-tipped],
+.book[data-active] {
+  box-shadow: var(--shadow-tipped);
+}
+
+.book[data-active] {
+  z-index: 2;
+}
+
+.inner:hover .book,
+.book:focus-visible {
+  will-change: transform;
+}
+
+.book::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    rgb(255 255 255 / 22%) 0%,
+    rgb(255 255 255 / 0%) 18%,
+    rgb(26 25 23 / 0%) 70%,
+    rgb(26 25 23 / 14%) 100%
+  );
+  pointer-events: none;
+}
+
+.book::after {
+  content: "";
+  position: absolute;
+  inset-block: 10px;
+  inset-inline: 0;
+  border-block: 1px solid currentColor;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.year {
+  position: absolute;
+  inset-block-start: 19px;
+  inset-inline: 0;
+  font-size: 9px;
+  line-height: 12px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.bookend {
+  position: absolute;
+  border-radius: 1px 1px 0 0;
+  background: var(--ink);
+}
+
+.bookendBase {
+  position: absolute;
+  inset-block-end: 0;
+  block-size: 4px;
+  border-radius: 0 1px 0 0;
+  background: var(--ink);
+}
+
+.line {
+  position: absolute;
+  inset-block-start: 240px;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  block-size: 3px;
+  background: var(--wash);
+  border-block-start: 1px solid var(--line);
+}
+
+.shadow {
+  position: absolute;
+  inset-block-start: 243px;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  block-size: 10px;
+  background: linear-gradient(180deg, rgb(26 25 23 / 8%) 0%, rgb(26 25 23 / 0%) 100%);
+}
+
+.caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--ink-soft);
+}
+
+.github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  color: var(--ink-faint);
+  transition: color var(--speed-fast) ease;
+}
+
+.github:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .shelf {
+    gap: var(--space-md);
+    margin-block-start: 28px;
+  }
+
+  .stage {
+    block-size: 165px;
+  }
+
+  .inner {
+    inline-size: 520px;
+    transform: scale(0.66);
+    transform-origin: 0 0;
+  }
+}
+
+@media (max-width: 380px) {
+  .stage {
+    block-size: 150px;
+  }
+
+  .inner {
+    transform: scale(0.6);
+  }
+}
