@@ -1,0 +1,49 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--control);
+  block-size: var(--control);
+  border-radius: var(--radius-md);
+  color: var(--ink-soft);
+  transition:
+    transform var(--speed-base) var(--ease-out),
+    background var(--speed-fast) ease,
+    color var(--speed-fast) ease;
+}
+
+.toggle:hover,
+.toggle:focus-visible {
+  transform: rotate(-12deg);
+  color: var(--ink);
+  background: var(--wash);
+}
+
+.icon {
+  display: block;
+  overflow: visible;
+}
+
+.moon,
+.sun {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  transition:
+    transform var(--speed-calm) var(--ease-out),
+    opacity var(--speed-base) ease;
+}
+
+.sun {
+  transform: rotate(-60deg) scale(0.6);
+  opacity: 0;
+}
+
+.toggle[data-theme-state="dark"] .moon {
+  transform: rotate(60deg) scale(0.6);
+  opacity: 0;
+}
+
+.toggle[data-theme-state="dark"] .sun {
+  transform: none;
+  opacity: 1;
+}
