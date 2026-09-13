@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { COLS, SLOTS } from "@/components/game/engine";
 import { GET, POST } from "./route";
 
-for (const key of ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]) {
-  delete process.env[key];
+if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error("refusing to run: test-setup.ts did not scrub the database credentials");
 }
 
 function postRaw(body: string) {
