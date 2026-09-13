@@ -12,11 +12,22 @@ import {
   type Player,
 } from "@/components/game/engine";
 import { getStats, recordGame, type Game, type Outcome } from "@/lib/games-store";
+import { allowRequest, claimSubmission, retryAfterSeconds } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
 
 const OUTCOMES: readonly string[] = ["human", "model", "draw"];
 const MAX_MODEL_VERSION_LENGTH = 40;
+const UNKNOWN_CLIENT = "unknown";
+
+function clientOf(req: Request) {
+  const forwarded = req.headers.get("x-forwarded-for");
+  return forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || UNKNOWN_CLIENT;
+}
+
+function fingerprintOf(client: string, game: Omit<Game, "created_at">) {
+  return `${client}|${game.result}|${game.moves.join(",")}`;
+}
 
 function serverError(action: string, error: unknown) {
   console.error(`api/games: ${action} failed`, error);
@@ -68,8 +79,20 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const client = clientOf(req);
+  if (!allowRequest(client)) {
+    return NextResponse.json(
+      { error: "too many games" },
+      { status: 429, headers: { "retry-after": String(retryAfterSeconds(client)) } },
+    );
+  }
+
   const game = parseGame(await req.json().catch(() => null));
   if (!game) return NextResponse.json({ error: "bad game" }, { status: 400 });
+
+  if (!claimSubmission(fingerprintOf(client, game))) {
+    return NextResponse.json({ error: "already recorded" }, { status: 409 });
+  }
 
   try {
     return NextResponse.json(await recordGame(game));
