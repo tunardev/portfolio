@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 const xmlEscape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const cdata = (s: string) => `<![CDATA[${s.replaceAll("]]>", "]]]]><![CDATA[>")}]]>`;
+export const cdata = (s: string) => `<![CDATA[${s.replaceAll("]]>", "]]]]><![CDATA[>")}]]>`;
 
 const rfc822 = (date: string) => new Date(`${date}T00:00:00Z`).toUTCString();
 

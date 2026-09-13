@@ -1,0 +1,11 @@
+const SUPABASE_ENV_KEYS = [
+  "SUPABASE_URL",
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+];
+
+for (const key of SUPABASE_ENV_KEYS) {
+  delete process.env[key];
+}

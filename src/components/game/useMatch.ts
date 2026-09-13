@@ -36,7 +36,7 @@ function writeSync(id: string, next: Sync) {
   for (const listener of listeners) listener();
 }
 
-function toSync(value: unknown): Sync {
+export function toSync(value: unknown): Sync {
   const candidate = value as Partial<Sync> | null;
   if (!candidate || !Array.isArray(candidate.moves) || typeof candidate.round !== "number") return EMPTY_SYNC;
   return {
@@ -54,7 +54,7 @@ function parseSync(raw: string | null): Sync {
   }
 }
 
-function isAhead(theirs: Sync, ours: Sync) {
+export function isAhead(theirs: Sync, ours: Sync) {
   if (theirs.round !== ours.round) return theirs.round > ours.round;
   return theirs.moves.length > ours.moves.length;
 }
