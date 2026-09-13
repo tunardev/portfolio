@@ -1,0 +1,83 @@
+.glyph {
+  display: block;
+  overflow: visible;
+  flex-shrink: 0;
+  color: var(--ink);
+}
+
+.soft {
+  stroke: color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.hot {
+  transition:
+    stroke var(--speed-base) ease,
+    fill var(--speed-base) ease,
+    opacity var(--speed-base) ease,
+    transform var(--speed-draw) var(--ease-out),
+    stroke-dashoffset var(--speed-draw) var(--ease-out);
+}
+
+.ring {
+  stroke: var(--red);
+  opacity: 0;
+}
+
+:global(.glyphHost:hover) .ring,
+:global(.glyphHost:focus-visible) .ring {
+  opacity: 1;
+}
+
+.cell {
+  fill: var(--paper);
+  stroke: color-mix(in srgb, var(--ink) 40%, transparent);
+}
+
+:global(.glyphHost:hover) .cell,
+:global(.glyphHost:focus-visible) .cell {
+  fill: color-mix(in srgb, var(--red) 14%, transparent);
+  stroke: var(--red);
+  stroke-dasharray: none;
+}
+
+.orbit {
+  transform-origin: 14px 14px;
+  color: var(--ink);
+  stroke: none;
+}
+
+:global(.glyphHost:hover) .orbit,
+:global(.glyphHost:focus-visible) .orbit {
+  transform: rotate(120deg);
+  color: var(--red);
+}
+
+.wire {
+  stroke: var(--red);
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+}
+
+:global(.glyphHost:hover) .wire,
+:global(.glyphHost:focus-visible) .wire {
+  stroke-dashoffset: 0;
+}
+
+.leaf {
+  fill: var(--paper);
+}
+
+:global(.glyphHost:hover) .leaf,
+:global(.glyphHost:focus-visible) .leaf {
+  fill: var(--red);
+  stroke: var(--red);
+}
+
+.slide {
+  transform: translateX(0);
+}
+
+:global(.glyphHost:hover) .slide,
+:global(.glyphHost:focus-visible) .slide {
+  transform: translateX(3px);
+}
