@@ -32,7 +32,7 @@ function glyphOf(value: unknown): GlyphName | null {
   return typeof value === "string" && (GLYPHS as string[]).includes(value) ? (value as GlyphName) : null;
 }
 
-function excerptOf(markdown: string) {
+export function excerptOf(markdown: string) {
   const firstParagraph =
     markdown
       .split(/\n\s*\n/)
@@ -44,7 +44,7 @@ function excerptOf(markdown: string) {
   const sentences = plain.match(/[^.!?]+[.!?]+(\s|$)/g) ?? [];
   let excerpt = "";
   for (const sentence of sentences) {
-    if (excerpt && (excerpt + sentence).trim().length > EXCERPT_LIMIT) break;
+    if ((excerpt + sentence).trim().length > EXCERPT_LIMIT) break;
     excerpt += sentence;
   }
   excerpt = excerpt.trim();
