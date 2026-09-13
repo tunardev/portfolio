@@ -12,6 +12,7 @@ import {
   nextExpiry,
   seatOf,
   seatOrder,
+  withSelf,
   type Sighting,
 } from "./seats";
 
@@ -196,5 +197,40 @@ describe("canAct gates who may write to the match", () => {
 
   test("a spectator may never act", () => {
     expect(canAct(SPECTATOR)).toBe(false);
+  });
+});
+
+describe("a client always seats itself", () => {
+  const me = at("me", 50);
+
+  test("adds itself when presence has not reported it yet", () => {
+    expect(withSelf([], me)).toEqual([me]);
+    expect(assignSeats(withSelf([], me)).ink).toBe("me");
+  });
+
+  test("a lone joiner takes ink rather than spectating", () => {
+    expect(seatOf(assignSeats(withSelf([], me)), "me")).toBe(INK_SEAT);
+  });
+
+  test("a second joiner takes red even before its own track lands", () => {
+    const seats = assignSeats(withSelf([at("host", 10)], me));
+    expect(seats.ink).toBe("host");
+    expect(seatOf(seats, "me")).toBe(RED_SEAT);
+  });
+
+  test("does not duplicate itself once presence catches up", () => {
+    const already = [at("host", 10), me];
+    expect(withSelf(already, me)).toHaveLength(2);
+    expect(assignSeats(withSelf(already, me)).red).toBe("me");
+  });
+
+  test("a third joiner still spectates", () => {
+    const seats = assignSeats(withSelf([at("host", 10), at("guest", 20)], me));
+    expect(seatOf(seats, "me")).toBe(SPECTATOR);
+  });
+
+  test("seating itself never displaces an earlier player", () => {
+    const seats = assignSeats(withSelf([at("host", 10)], me));
+    expect(seats.ink).toBe("host");
   });
 });

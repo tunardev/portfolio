@@ -44,6 +44,10 @@ export function colorOf(seat: Seat, inkMovesFirst: boolean): Player | null {
   return (seat === INK_SEAT) === inkMovesFirst ? FIRST : SECOND;
 }
 
+export function withSelf(occupants: Occupant[], me: Occupant): Occupant[] {
+  return occupants.some((occupant) => occupant.clientId === me.clientId) ? occupants : [...occupants, me];
+}
+
 export function holdingSeats(sightings: Sighting[], present: ReadonlySet<string>, now: number): Occupant[] {
   return sightings
     .filter((seen) => present.has(seen.clientId) || now - seen.lastSeen < SEAT_GRACE_MS)

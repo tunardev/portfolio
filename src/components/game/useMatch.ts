@@ -12,6 +12,7 @@ import {
   holdingSeats,
   nextExpiry,
   seatOf,
+  withSelf,
   type Occupant,
   type Seat,
   type Sighting,
@@ -222,8 +223,8 @@ export function useMatch(id: string) {
   }, [sightings, present, now]);
 
   const seats = useMemo(
-    () => (sightings.length ? assignSeats(holdingSeats(sightings, present, now)) : EMPTY_SEATS),
-    [sightings, present, now],
+    () => (me ? assignSeats(withSelf(holdingSeats(sightings, present, now), me)) : EMPTY_SEATS),
+    [sightings, present, now, me],
   );
 
   const inkMovesFirst = sync.round % 2 === 0;
