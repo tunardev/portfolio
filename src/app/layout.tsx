@@ -1,14 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
-import { Newsreader } from "next/font/google";
+import { Geist, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AUTHOR, PROFILES, SITE_DESCRIPTION, SITE_NAME, SITE_URL, X_HANDLE } from "@/lib/site";
 import "./globals.css";
 
+const sans = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
+
 const serif = Newsreader({
   subsets: ["latin"],
-  style: ["normal", "italic"],
-  axes: ["opsz"],
+  weight: ["400"],
   variable: "--font-newsreader",
   display: "swap",
 });
@@ -77,7 +81,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${serif.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${sans.variable} ${serif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BEFORE_PAINT }} />
         {PROFILES.map((profile) => (

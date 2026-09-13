@@ -160,7 +160,6 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-body);
   line-height: var(--leading-body);
-  font-optical-sizing: auto;
 }
 
 p,
