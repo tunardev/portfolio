@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { COLS, FIRST, SECOND, type Player } from "./engine";
-import { realtime } from "@/lib/realtime";
+import { isRealtimeConfigured, realtime } from "@/lib/realtime";
 
 export type Role = "host" | "guest";
 
@@ -63,14 +63,14 @@ export function isAhead(theirs: Sync, ours: Sync) {
 
 type ChannelRef = { current: RealtimeChannel | null };
 
-function connect(
+async function openChannel(
   id: string,
   channel: ChannelRef,
   latest: { current: Sync },
   setOthers: (count: number) => void,
   setReady: (ready: boolean) => void,
 ) {
-  const client = realtime();
+  const client = await realtime();
   const seat: Role = readItem(seatKey(id)) === "host" ? "host" : "guest";
   const presenceKey = `${seat}-${Math.random().toString(36).slice(2, 8)}`;
   const socket =
@@ -109,8 +109,34 @@ function connect(
   };
 }
 
+function connect(
+  id: string,
+  channel: ChannelRef,
+  latest: { current: Sync },
+  setOthers: (count: number) => void,
+  setReady: (ready: boolean) => void,
+) {
+  let cancelled = false;
+  let close: (() => void) | null = null;
+
+  void openChannel(id, channel, latest, setOthers, setReady).then((teardown) => {
+    if (cancelled) {
+      teardown();
+      return;
+    }
+    close = teardown;
+  });
+
+  return () => {
+    cancelled = true;
+    close?.();
+    close = null;
+    channel.current = null;
+  };
+}
+
 export function useMatch(id: string) {
-  const [configured] = useState(() => realtime() !== null);
+  const [configured] = useState(isRealtimeConfigured);
   const seatRaw = useSyncExternalStore(
     subscribe,
     () => readItem(seatKey(id)),
