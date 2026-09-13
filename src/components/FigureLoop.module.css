@@ -1,0 +1,33 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  inline-size: 100%;
+  margin: 0;
+  padding-block: var(--space-sm) var(--space-2xs);
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+  inline-size: 100%;
+  aspect-ratio: 680 / 224;
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  font-size: var(--text-small);
+  line-height: var(--leading-small);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 720px) {
+  .svg text {
+    font-size: 19px;
+  }
+
+  .caption {
+    font-size: var(--text-fine);
+    line-height: var(--leading-fine);
+  }
+}
