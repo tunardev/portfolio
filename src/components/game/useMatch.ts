@@ -7,6 +7,7 @@ import {
   SEAT_GRACE_MS,
   SPECTATOR,
   assignSeats,
+  canAct,
   colorOf,
   holdingSeats,
   nextExpiry,
@@ -237,12 +238,20 @@ export function useMatch(id: string) {
     [id],
   );
 
+  const seated = canAct(seat);
+
   const playMove = useCallback(
-    (col: number) => push({ moves: [...latest.current.moves, col], round: latest.current.round }),
-    [push],
+    (col: number) => {
+      if (!seated) return;
+      push({ moves: [...latest.current.moves, col], round: latest.current.round });
+    },
+    [push, seated],
   );
 
-  const rematch = useCallback(() => push({ moves: [], round: latest.current.round + 1 }), [push]);
+  const rematch = useCallback(() => {
+    if (!seated) return;
+    push({ moves: [], round: latest.current.round + 1 });
+  }, [push, seated]);
 
   return {
     seat,

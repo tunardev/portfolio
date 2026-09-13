@@ -35,6 +35,10 @@ export function seatOf(seats: SeatMap, clientId: string): Seat {
   return SPECTATOR;
 }
 
+export function canAct(seat: Seat): boolean {
+  return seat !== SPECTATOR;
+}
+
 export function colorOf(seat: Seat, inkMovesFirst: boolean): Player | null {
   if (seat === SPECTATOR) return null;
   return (seat === INK_SEAT) === inkMovesFirst ? FIRST : SECOND;

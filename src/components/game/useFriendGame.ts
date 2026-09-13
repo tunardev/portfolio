@@ -35,6 +35,7 @@ export function useFriendGame(id: string) {
   const waiting = seat !== SPECTATOR && !joined && played === 0;
   const mine = myColor !== null && turn === myColor;
   const copy = friendCopy({ seat, moves: played, over, result, myColor, mine, joined, waiting, watching });
+  const canPlay = ready && !over && mine;
   const roundKey = `${round}:${played}`;
 
   useEffect(() => {
@@ -53,10 +54,12 @@ export function useFriendGame(id: string) {
     seat,
     joined,
     waiting,
-    canPlay: ready && !over && mine,
+    canPlay,
     copy,
     roundKey,
-    playMove: match.playMove,
+    playMove: (col: number) => {
+      if (canPlay) match.playMove(col);
+    },
     canRematch: seat !== SPECTATOR,
     rematch: match.rematch,
   };

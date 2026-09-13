@@ -6,6 +6,7 @@ import {
   SEAT_GRACE_MS,
   SPECTATOR,
   assignSeats,
+  canAct,
   colorOf,
   holdingSeats,
   nextExpiry,
@@ -184,5 +185,16 @@ describe("when both players leave", () => {
     const seats = assignSeats(holdingSeats(sightings, new Set(["c", "d"]), now));
     expect(seats.ink).toBe("c");
     expect(seats.red).toBe("d");
+  });
+});
+
+describe("canAct gates who may write to the match", () => {
+  test("seated players may act", () => {
+    expect(canAct(INK_SEAT)).toBe(true);
+    expect(canAct(RED_SEAT)).toBe(true);
+  });
+
+  test("a spectator may never act", () => {
+    expect(canAct(SPECTATOR)).toBe(false);
   });
 });
