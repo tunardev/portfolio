@@ -1,0 +1,21 @@
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--control);
+  block-size: var(--control);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  transition:
+    transform var(--speed-base) var(--ease-out),
+    background var(--speed-fast) ease;
+}
+
+.mark:hover {
+  transform: rotate(-8deg) translateY(-1px);
+  background: var(--wash);
+}
+
+.mark[aria-pressed="true"] {
+  transform: rotate(90deg);
+}
