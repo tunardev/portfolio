@@ -1,0 +1,46 @@
+.rise {
+  animation: rise 1400ms var(--ease-out) both;
+  animation-delay: calc(var(--i) * 140ms);
+}
+
+.sun {
+  animation: sun 1900ms var(--ease-out) both;
+}
+
+.climb {
+  animation: climb 70s linear infinite alternate;
+}
+
+.drift {
+  animation: drift 24s ease-in-out infinite alternate;
+  animation-delay: calc(var(--i) * -6s);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(36px);
+    opacity: 0;
+  }
+}
+
+@keyframes sun {
+  from {
+    transform: translateY(56px);
+    opacity: 0;
+  }
+}
+
+@keyframes climb {
+  to {
+    transform: translateY(-22px);
+  }
+}
+
+@keyframes drift {
+  from {
+    transform: translateX(calc(var(--dx) * -1px));
+  }
+  to {
+    transform: translateX(calc(var(--dx) * 1px));
+  }
+}
