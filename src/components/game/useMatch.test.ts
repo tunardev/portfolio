@@ -77,3 +77,31 @@ describe("seatKey", () => {
     expect(seatKey("abc23xyz")).toBe("match:abc23xyz:seat");
   });
 });
+
+describe("toSync validates the round as strictly as the moves", () => {
+  test("a fractional round is refused outright", () => {
+    expect(toSync({ moves: [1, 2], round: 0.5 })).toEqual({ moves: [], round: 0 });
+  });
+
+  test("a negative round is refused outright", () => {
+    expect(toSync({ moves: [1, 2], round: -3 })).toEqual({ moves: [], round: 0 });
+  });
+
+  test("a non-finite round is refused outright", () => {
+    expect(toSync({ moves: [1], round: Number.NaN })).toEqual({ moves: [], round: 0 });
+    expect(toSync({ moves: [1], round: Number.POSITIVE_INFINITY })).toEqual({ moves: [], round: 0 });
+  });
+
+  test("a whole non-negative round is accepted", () => {
+    expect(toSync({ moves: [1], round: 0 })).toEqual({ moves: [1], round: 0 });
+    expect(toSync({ moves: [1], round: 7 })).toEqual({ moves: [1], round: 7 });
+  });
+
+  test("an accepted round always decides colours consistently", () => {
+    for (const round of [0, 1, 2, 3, 50, 99]) {
+      const parsed = toSync({ moves: [], round });
+      expect(Number.isInteger(parsed.round % 2)).toBe(true);
+      expect([0, 1]).toContain(parsed.round % 2);
+    }
+  });
+});

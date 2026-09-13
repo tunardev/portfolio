@@ -38,10 +38,12 @@ function writeSync(id: string, next: Sync) {
 
 export function toSync(value: unknown): Sync {
   const candidate = value as Partial<Sync> | null;
-  if (!candidate || !Array.isArray(candidate.moves) || typeof candidate.round !== "number") return EMPTY_SYNC;
+  if (!candidate || !Array.isArray(candidate.moves)) return EMPTY_SYNC;
+  const round = candidate.round;
+  if (!Number.isInteger(round) || (round as number) < 0) return EMPTY_SYNC;
   return {
     moves: candidate.moves.filter((col) => Number.isInteger(col) && col >= 0 && col < COLS),
-    round: candidate.round,
+    round: round as number,
   };
 }
 
