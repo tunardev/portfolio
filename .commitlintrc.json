@@ -1,0 +1,7 @@
+{
+  "extends": ["@commitlint/config-conventional"],
+  "rules": {
+    "header-max-length": [2, "always", 100],
+    "scope-enum": [2, "always", ["blog", "game", "scenes", "seo", "ui", "deps", "ci", "content"]]
+  }
+}
