@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { FIRST, SECOND } from "./engine";
 import {
+  INK_SEAT,
+  RED_SEAT,
   SEAT_GRACE_MS,
+  SPECTATOR,
   assignSeats,
   colorOf,
   holdingSeats,
@@ -67,22 +70,22 @@ describe("seatOf and colorOf", () => {
   const seats = assignSeats([at("a", 1), at("b", 2), at("c", 3)]);
 
   test("reports the seat each client holds", () => {
-    expect(seatOf(seats, "a")).toBe("ink");
-    expect(seatOf(seats, "b")).toBe("red");
-    expect(seatOf(seats, "c")).toBe("spectator");
-    expect(seatOf(seats, "nobody")).toBe("spectator");
+    expect(seatOf(seats, "a")).toBe(INK_SEAT);
+    expect(seatOf(seats, "b")).toBe(RED_SEAT);
+    expect(seatOf(seats, "c")).toBe(SPECTATOR);
+    expect(seatOf(seats, "nobody")).toBe(SPECTATOR);
   });
 
   test("a spectator never gets a colour", () => {
-    expect(colorOf("spectator", true)).toBeNull();
-    expect(colorOf("spectator", false)).toBeNull();
+    expect(colorOf(SPECTATOR, true)).toBeNull();
+    expect(colorOf(SPECTATOR, false)).toBeNull();
   });
 
   test("colours swap with the round so rematches alternate", () => {
-    expect(colorOf("ink", true)).toBe(FIRST);
-    expect(colorOf("red", true)).toBe(SECOND);
-    expect(colorOf("ink", false)).toBe(SECOND);
-    expect(colorOf("red", false)).toBe(FIRST);
+    expect(colorOf(INK_SEAT, true)).toBe(FIRST);
+    expect(colorOf(RED_SEAT, true)).toBe(SECOND);
+    expect(colorOf(INK_SEAT, false)).toBe(SECOND);
+    expect(colorOf(RED_SEAT, false)).toBe(FIRST);
   });
 });
 
@@ -140,5 +143,46 @@ describe("nextExpiry schedules the next seat change", () => {
   test("ignores graces that have already run out", () => {
     const now = 100_000;
     expect(nextExpiry([seen("b", 2, now - SEAT_GRACE_MS * 2)], new Set(), now)).toBeNull();
+  });
+});
+
+describe("when both players leave", () => {
+  const now = 200_000;
+  const gone = now - SEAT_GRACE_MS;
+
+  test("spectators stay spectators while the grace still holds", () => {
+    const sightings = [seen("a", 1, now - 1), seen("b", 2, now - 1), seen("c", 3, now), seen("d", 4, now)];
+    const seats = assignSeats(holdingSeats(sightings, new Set(["c", "d"]), now));
+    expect(seats.ink).toBe("a");
+    expect(seats.red).toBe("b");
+    expect(seats.spectators).toEqual(["c", "d"]);
+  });
+
+  test("the two longest-waiting spectators take both seats once the grace expires", () => {
+    const sightings = [seen("a", 1, gone), seen("b", 2, gone), seen("c", 3, now), seen("d", 4, now)];
+    const seats = assignSeats(holdingSeats(sightings, new Set(["c", "d"]), now));
+    expect(seats.ink).toBe("c");
+    expect(seats.red).toBe("d");
+    expect(seats.spectators).toEqual([]);
+  });
+
+  test("a lone remaining spectator takes ink and waits for an opponent", () => {
+    const sightings = [seen("a", 1, gone), seen("b", 2, gone), seen("c", 3, now)];
+    const seats = assignSeats(holdingSeats(sightings, new Set(["c"]), now));
+    expect(seats.ink).toBe("c");
+    expect(seats.red).toBeNull();
+    expect(seats.spectators).toEqual([]);
+  });
+
+  test("an empty room seats nobody", () => {
+    const sightings = [seen("a", 1, gone), seen("b", 2, gone)];
+    expect(assignSeats(holdingSeats(sightings, new Set(), now))).toEqual({ ink: null, red: null, spectators: [] });
+  });
+
+  test("promotion order still follows arrival, not who left", () => {
+    const sightings = [seen("a", 1, gone), seen("b", 2, gone), seen("d", 40, now), seen("c", 30, now)];
+    const seats = assignSeats(holdingSeats(sightings, new Set(["c", "d"]), now));
+    expect(seats.ink).toBe("c");
+    expect(seats.red).toBe("d");
   });
 });

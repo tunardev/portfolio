@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { EMPTY, FIRST, SECOND } from "./engine";
 import { type Standing, friendCopy } from "./friendCopy";
+import { INK_SEAT, SPECTATOR } from "./seats";
 
 const standing = (over: Partial<Standing> = {}): Standing => ({
-  seat: "ink",
+  seat: INK_SEAT,
   watching: 0,
   moves: 0,
   over: false,
@@ -113,7 +114,7 @@ describe("games in progress", () => {
 
 describe("spectators are told they are watching", () => {
   const watcher = (over: Partial<Standing> = {}) =>
-    friendCopy(standing({ seat: "spectator", myColor: null, mine: false, ...over }));
+    friendCopy(standing({ seat: SPECTATOR, myColor: null, mine: false, ...over }));
 
   test("a spectator is never told it is their move", () => {
     expect(watcher().title).toBe("You are watching.");

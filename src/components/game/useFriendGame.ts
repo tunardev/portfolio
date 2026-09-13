@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { EMPTY, FIRST, drop, emptyBoard, hasRoom, isFull, opponent, winner, winningCells, type Player } from "./engine";
 import { friendCopy } from "./friendCopy";
+import { SPECTATOR } from "./seats";
 import { useMatch } from "./useMatch";
 import { winChime } from "@/lib/sounds";
 
@@ -22,7 +23,7 @@ export function replay(moves: number[]) {
 
 export function useFriendGame(id: string) {
   const match = useMatch(id);
-  const { seat, myColor, opponentSeated, watching, moves, round, ready } = match;
+  const { seat, myColor, bothSeated, watching, moves, round, ready } = match;
   const chimedFor = useRef("");
 
   const { board, last, turn, played } = useMemo(() => replay(moves), [moves]);
@@ -30,8 +31,8 @@ export function useFriendGame(id: string) {
   const over = result !== EMPTY || isFull(board);
   const winningLine = useMemo(() => (result !== EMPTY ? winningCells(board) : []), [board, result]);
 
-  const joined = opponentSeated;
-  const waiting = seat !== "spectator" && !joined && played === 0;
+  const joined = bothSeated;
+  const waiting = seat !== SPECTATOR && !joined && played === 0;
   const mine = myColor !== null && turn === myColor;
   const copy = friendCopy({ seat, moves: played, over, result, myColor, mine, joined, waiting, watching });
   const roundKey = `${round}:${played}`;
@@ -56,7 +57,7 @@ export function useFriendGame(id: string) {
     copy,
     roundKey,
     playMove: match.playMove,
-    canRematch: seat !== "spectator",
+    canRematch: seat !== SPECTATOR,
     rematch: match.rematch,
   };
 }

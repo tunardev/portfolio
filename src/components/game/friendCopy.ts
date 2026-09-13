@@ -1,5 +1,5 @@
 import { EMPTY, FIRST, type Cell, type Player } from "./engine";
-import type { Seat } from "./seats";
+import { SPECTATOR, type Seat } from "./seats";
 
 export type Standing = {
   seat: Seat;
@@ -19,7 +19,7 @@ function progress(standing: Standing) {
   const { moves, over, waiting, mine, seat } = standing;
   if (over) return `, ${moves} moves`;
   if (waiting) return "";
-  if (seat === "spectator") return `, move ${moves + 1}`;
+  if (seat === SPECTATOR) return `, move ${moves + 1}`;
   return `, move ${moves + 1}, ${mine ? "your move" : "their move"}`;
 }
 
@@ -50,7 +50,7 @@ function spectatorCopy(standing: Standing) {
 }
 
 export function friendCopy(standing: Standing) {
-  if (standing.seat === "spectator") return spectatorCopy(standing);
+  if (standing.seat === SPECTATOR) return spectatorCopy(standing);
 
   const { over, result, myColor, mine, joined, waiting, watching } = standing;
   const you = myColor === FIRST ? "ink" : "red";

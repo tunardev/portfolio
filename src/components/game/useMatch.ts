@@ -1,16 +1,18 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { isRealtimeConfigured, matchId, realtime } from "@/lib/realtime";
+import { isRealtimeConfigured, realtime, shortId } from "@/lib/realtime";
 import { COLS } from "./engine";
 import {
   EMPTY_SEATS,
   SEAT_GRACE_MS,
+  SPECTATOR,
   assignSeats,
   colorOf,
   holdingSeats,
   nextExpiry,
   seatOf,
   type Occupant,
+  type Seat,
   type Sighting,
 } from "./seats";
 
@@ -79,7 +81,7 @@ export function isAhead(theirs: Sync, ours: Sync) {
 }
 
 export function claimIdentity(id: string, now = Date.now()): Occupant {
-  const clientId = readItem(clientKey(id)) ?? matchId();
+  const clientId = readItem(clientKey(id)) ?? shortId();
   writeItem(clientKey(id), clientId);
 
   const lastSeen = Number(readItem(seenKey(id)) ?? 0);
@@ -174,7 +176,7 @@ function connect(
 
 export function useMatch(id: string) {
   const [configured] = useState(isRealtimeConfigured);
-  const [me] = useState(() => claimIdentity(id));
+  const [me] = useState<Occupant | null>(() => (typeof window === "undefined" ? null : claimIdentity(id)));
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [present, setPresent] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [now, setNow] = useState(() => Date.now());
@@ -204,7 +206,7 @@ export function useMatch(id: string) {
     });
   }, []);
 
-  useEffect(() => connect(id, channel, latest, me, onPresence, setReady), [id, me, onPresence]);
+  useEffect(() => (me ? connect(id, channel, latest, me, onPresence, setReady) : undefined), [id, me, onPresence]);
 
   useEffect(() => {
     const beat = window.setInterval(() => writeItem(seenKey(id), String(Date.now())), HEARTBEAT_MS);
@@ -223,9 +225,9 @@ export function useMatch(id: string) {
     [sightings, present, now],
   );
 
-  const hostMovesFirst = sync.round % 2 === 0;
-  const seat = seatOf(seats, me.clientId);
-  const myColor = colorOf(seat, hostMovesFirst);
+  const inkMovesFirst = sync.round % 2 === 0;
+  const seat: Seat = me ? seatOf(seats, me.clientId) : SPECTATOR;
+  const myColor = colorOf(seat, inkMovesFirst);
 
   const push = useCallback(
     (next: Sync) => {
@@ -245,7 +247,7 @@ export function useMatch(id: string) {
   return {
     seat,
     myColor,
-    opponentSeated: seat === "spectator" ? seats.ink !== null && seats.red !== null : Boolean(seats.ink && seats.red),
+    bothSeated: seats.ink !== null && seats.red !== null,
     watching: seats.spectators.length,
     moves: sync.moves,
     round: sync.round,

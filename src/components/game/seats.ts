@@ -2,7 +2,11 @@ import { FIRST, SECOND, type Player } from "./engine";
 
 export const SEAT_GRACE_MS = 30_000;
 
-export type Seat = "ink" | "red" | "spectator";
+export const INK_SEAT = "ink";
+export const RED_SEAT = "red";
+export const SPECTATOR = "spectator";
+
+export type Seat = typeof INK_SEAT | typeof RED_SEAT | typeof SPECTATOR;
 
 export type Occupant = { clientId: string; since: number };
 
@@ -13,9 +17,7 @@ export type SeatMap = { ink: string | null; red: string | null; spectators: stri
 export const EMPTY_SEATS: SeatMap = { ink: null, red: null, spectators: [] };
 
 export function seatOrder(occupants: Occupant[]): Occupant[] {
-  return [...occupants].sort(
-    (a, b) => a.since - b.since || (a.clientId < b.clientId ? -1 : a.clientId > b.clientId ? 1 : 0),
-  );
+  return [...occupants].sort((a, b) => a.since - b.since || a.clientId.localeCompare(b.clientId));
 }
 
 export function assignSeats(occupants: Occupant[]): SeatMap {
@@ -28,14 +30,14 @@ export function assignSeats(occupants: Occupant[]): SeatMap {
 }
 
 export function seatOf(seats: SeatMap, clientId: string): Seat {
-  if (seats.ink === clientId) return "ink";
-  if (seats.red === clientId) return "red";
-  return "spectator";
+  if (seats.ink === clientId) return INK_SEAT;
+  if (seats.red === clientId) return RED_SEAT;
+  return SPECTATOR;
 }
 
-export function colorOf(seat: Seat, hostMovesFirst: boolean): Player | null {
-  if (seat === "spectator") return null;
-  return (seat === "ink") === hostMovesFirst ? FIRST : SECOND;
+export function colorOf(seat: Seat, inkMovesFirst: boolean): Player | null {
+  if (seat === SPECTATOR) return null;
+  return (seat === INK_SEAT) === inkMovesFirst ? FIRST : SECOND;
 }
 
 export function holdingSeats(sightings: Sighting[], present: ReadonlySet<string>, now: number): Occupant[] {

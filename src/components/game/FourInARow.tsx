@@ -7,7 +7,7 @@ import { TurnChart } from "./TurnChart";
 import { FIRST } from "./engine";
 import { useModelGame } from "./useModelGame";
 import type { Stats } from "./stats";
-import { matchId } from "@/lib/realtime";
+import { shortId } from "@/lib/realtime";
 import styles from "./FourInARow.module.css";
 
 type Props = { onClose: () => void; stats: Stats | null; onStats: (stats: Stats) => void };
@@ -17,7 +17,7 @@ export function FourInARow({ onClose, stats, onStats }: Props) {
   const game = useModelGame(onStats);
   const played = game.moves.length;
 
-  const inviteFriend = () => router.push(`/play/${matchId()}`);
+  const inviteFriend = () => router.push(`/play/${shortId()}`);
 
   return (
     <section className={styles.game} aria-label="Four in a row against the model">

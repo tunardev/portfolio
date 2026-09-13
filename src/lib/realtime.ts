@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const MATCH_ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
-const MATCH_ID_LENGTH = 8;
+const ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+const ID_LENGTH = 8;
 
 let pending: Promise<SupabaseClient | null> | null = null;
 
@@ -25,8 +25,8 @@ export function realtime(): Promise<SupabaseClient | null> {
   return pending;
 }
 
-export function matchId() {
-  const bytes = new Uint8Array(MATCH_ID_LENGTH);
+export function shortId() {
+  const bytes = new Uint8Array(ID_LENGTH);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => MATCH_ID_ALPHABET[byte % MATCH_ID_ALPHABET.length]).join("");
+  return Array.from(bytes, (byte) => ID_ALPHABET[byte % ID_ALPHABET.length]).join("");
 }
