@@ -1,0 +1,39 @@
+.page {
+  position: relative;
+  overflow: hidden;
+  min-block-size: 100dvh;
+  color: var(--ink);
+  background: var(--sage);
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.note {
+  position: absolute;
+  inset-block-start: var(--space-3xl);
+  inset-inline: var(--space-3xl);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-lg);
+  margin: 0;
+  font-size: var(--text-ui);
+  line-height: var(--leading-ui);
+}
+
+.lead {
+  font-weight: 500;
+}
+
+@media (max-width: 520px) {
+  .note {
+    inset-block-start: var(--gutter);
+    inset-inline: var(--gutter);
+    gap: var(--space-md);
+  }
+}
