@@ -2,7 +2,8 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "bun:test";
 import { SITE_URL } from "@/lib/site";
-import { GET, cdata } from "./route";
+import { GET } from "./route";
+import { cdata } from "@/lib/rss";
 
 const CDATA_SECTION = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
 
