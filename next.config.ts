@@ -10,6 +10,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: { inlineCss: true },
   poweredByHeader: false,
   compress: true,
   images: {
