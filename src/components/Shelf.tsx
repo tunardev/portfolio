@@ -97,10 +97,9 @@ export function Shelf() {
                   transform: tipped ? `rotate(${LEAN_DEG}deg)` : undefined,
                   transitionDelay: delay ? `${delay}ms` : undefined,
                 }}
-                aria-label={`${paper.title}, ${paper.year}`}
               >
-                <span className={styles.year}>{paper.year}</span>
                 <span className={styles.title}>{paper.title}</span>
+                <span className={styles.year}>{paper.year}</span>
               </a>
             );
           })}
