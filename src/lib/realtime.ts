@@ -1,9 +1,9 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RealtimeClient } from "@supabase/realtime-js";
 
 const ID_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 const ID_LENGTH = 8;
 
-let pending: Promise<SupabaseClient | null> | null = null;
+let pending: Promise<RealtimeClient | null> | null = null;
 
 function credentials() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,13 +15,25 @@ export function isRealtimeConfigured() {
   return credentials() !== null;
 }
 
-export function realtime(): Promise<SupabaseClient | null> {
-  pending ??= (async () => {
-    const config = credentials();
-    if (!config) return null;
-    const { createClient } = await import("@supabase/supabase-js");
-    return createClient(config.url, config.key, { auth: { persistSession: false } });
-  })();
+async function connect(): Promise<RealtimeClient | null> {
+  const config = credentials();
+  if (!config) return null;
+  // realtime-js alone, not supabase-js: friend games never sign in, query tables, or touch storage
+  const { RealtimeClient } = await import("@supabase/realtime-js");
+  const endpoint = new URL("realtime/v1", config.url.endsWith("/") ? config.url : `${config.url}/`);
+  endpoint.protocol = endpoint.protocol.replace("http", "ws");
+  return new RealtimeClient(endpoint.href, {
+    params: { apikey: config.key },
+    accessToken: () => Promise.resolve(config.key),
+  });
+}
+
+export function realtime(): Promise<RealtimeClient | null> {
+  // a failed chunk load must not be cached, or friend games stay broken until a full reload
+  pending ??= connect().catch((error: unknown) => {
+    pending = null;
+    throw error;
+  });
   return pending;
 }
 

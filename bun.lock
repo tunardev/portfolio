@@ -5,6 +5,7 @@
     "": {
       "name": "tunar-portfolio",
       "dependencies": {
+        "@supabase/realtime-js": "^2.115.0",
         "@supabase/supabase-js": "^2.115.0",
         "@vercel/analytics": "^2.0.1",
         "gray-matter": "^4.0.3",
