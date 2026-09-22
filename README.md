@@ -33,6 +33,7 @@ to your project.
 bun run build      # production build
 bun run typecheck  # tsc --noEmit
 bun run lint       # biome
+bun run test       # bun test
 bun run analyze    # bundle report in .next/analyze
 bun run train      # retrain the model into public/model/weights.json
 ```
