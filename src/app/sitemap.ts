@@ -4,8 +4,11 @@ import { SITE_URL } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const posts = await getPosts();
-  const touched = posts.map((post) => post.updated ?? post.date).sort();
-  const newest = new Date(touched[touched.length - 1] ?? new Date().toISOString().slice(0, 10));
+  const lastTouched = posts
+    .map((post) => post.updated ?? post.date)
+    .sort()
+    .at(-1);
+  const newest = lastTouched ? new Date(lastTouched) : new Date();
 
   return [
     { url: `${SITE_URL}/`, lastModified: newest, changeFrequency: "monthly", priority: 1 },

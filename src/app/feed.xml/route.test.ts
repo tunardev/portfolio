@@ -1,9 +1,10 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "bun:test";
+import type { Post } from "@/lib/posts";
+import { cdata, renderFeed } from "@/lib/rss";
 import { SITE_URL } from "@/lib/site";
 import { GET } from "./route";
-import { cdata } from "@/lib/rss";
 
 const CDATA_SECTION = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
 
@@ -112,5 +113,44 @@ describe("cdata cannot be broken out of", () => {
 
   test("an empty payload is still a well-formed section", () => {
     expect(cdata("")).toBe("<![CDATA[]]>");
+  });
+});
+
+function post(overrides: Partial<Post>): Post {
+  return {
+    slug: "a-post",
+    title: "A post",
+    date: "2025-01-01",
+    minutes: 1,
+    excerpt: "An excerpt.",
+    glyph: null,
+    updated: null,
+    tags: [],
+    words: 10,
+    html: "<p>Body</p>",
+    ...overrides,
+  };
+}
+
+describe("renderFeed", () => {
+  test("markup in a title or excerpt is escaped", () => {
+    const xml = renderFeed([post({ title: "Tom & <Jerry>", excerpt: 'a "quoted" <b>word</b>' })]);
+    expect(xml).toContain("<title>Tom &amp; &lt;Jerry&gt;</title>");
+    expect(xml).toContain("<description>a &quot;quoted&quot; &lt;b&gt;word&lt;/b&gt;</description>");
+  });
+
+  test("the build date follows the latest edit even on an older post", () => {
+    const xml = renderFeed([
+      post({ slug: "newest", date: "2025-03-01" }),
+      post({ slug: "older", date: "2025-01-01", updated: "2025-06-01" }),
+    ]);
+    expect(xml).toContain(`<lastBuildDate>${new Date("2025-06-01T00:00:00Z").toUTCString()}</lastBuildDate>`);
+  });
+
+  test("an empty blog still renders a channel with a valid build date", () => {
+    const xml = renderFeed([]);
+    expect(occurrences(xml, "<item>")).toBe(0);
+    const [, date] = xml.match(/<lastBuildDate>(.*?)<\/lastBuildDate>/) ?? [];
+    expect(Number.isNaN(new Date(date ?? "").getTime())).toBe(false);
   });
 });
