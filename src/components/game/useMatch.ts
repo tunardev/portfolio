@@ -1,4 +1,4 @@
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel } from "@supabase/realtime-js";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { isRealtimeConfigured, realtime, shortId } from "@/lib/realtime";
 import { COLS } from "./engine";
@@ -30,6 +30,8 @@ const sinceKey = (id: string) => `match:${id}:since`;
 const seenKey = (id: string) => `match:${id}:seen`;
 
 const listeners = new Set<() => void>();
+const memory = new Map<string, string>();
+const leaving = new Map<string, Promise<unknown>>();
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
@@ -38,18 +40,21 @@ function subscribe(listener: () => void) {
   };
 }
 
+// storage can throw when the browser blocks site data; keep the match playable in memory then
 function readItem(key: string) {
   try {
     return localStorage.getItem(key);
   } catch {
-    return null;
+    return memory.get(key) ?? null;
   }
 }
 
 function writeItem(key: string, value: string) {
   try {
     localStorage.setItem(key, value);
-  } catch {}
+  } catch {
+    memory.set(key, value);
+  }
 }
 
 function writeSync(id: string, next: Sync) {
@@ -77,6 +82,9 @@ function parseSync(raw: string | null): Sync {
   }
 }
 
+// read storage, not rendered state, so two broadcasts landing before a re-render compare against the newest
+const readSync = (id: string) => parseSync(readItem(stateKey(id)));
+
 export function isAhead(theirs: Sync, ours: Sync) {
   if (theirs.round !== ours.round) return theirs.round > ours.round;
   return theirs.moves.length > ours.moves.length;
@@ -96,23 +104,31 @@ export function claimIdentity(id: string, now = Date.now()): Occupant {
   return { clientId, since };
 }
 
-type ChannelRef = { current: RealtimeChannel | null };
+type Listeners = {
+  onChannel: (channel: RealtimeChannel | null) => void;
+  onPresence: (present: Map<string, number>) => void;
+  onReady: () => void;
+  onUnavailable: () => void;
+};
 
-async function openChannel(
+export function connect(
   id: string,
-  channel: ChannelRef,
-  latest: { current: Sync },
   me: Occupant,
-  onPresence: (present: Map<string, number>) => void,
-  setReady: (ready: boolean) => void,
+  { onChannel, onPresence, onReady, onUnavailable }: Listeners,
+  load = realtime,
 ) {
-  const client = await realtime();
-  const socket =
-    client?.channel(stateKey(id), { config: { presence: { key: me.clientId }, broadcast: { self: false } } }) ?? null;
+  const topic = stateKey(id);
+  let cancelled = false;
+  let close: (() => void) | null = null;
 
-  channel.current = socket;
+  const open = async () => {
+    const client = await load();
+    // the client hands back a still-leaving channel for the same topic, and it cannot be joined twice
+    await leaving.get(topic);
+    if (cancelled || !client) return;
 
-  if (socket) {
+    const socket = client.channel(topic, { config: { presence: { key: me.clientId }, broadcast: { self: false } } });
+
     socket.on("presence", { event: "sync" }, () => {
       const present = new Map<string, number>();
       for (const [clientId, metas] of Object.entries(socket.presenceState())) {
@@ -125,67 +141,50 @@ async function openChannel(
 
     socket.on("broadcast", { event: "sync" }, ({ payload }) => {
       const theirs = toSync(payload);
-      if (isAhead(theirs, latest.current)) writeSync(id, theirs);
+      if (isAhead(theirs, readSync(id))) writeSync(id, theirs);
     });
 
     socket.on("broadcast", { event: "hello" }, () => {
-      void socket.send({ type: "broadcast", event: "sync", payload: latest.current });
+      void socket.send({ type: "broadcast", event: "sync", payload: readSync(id) });
     });
 
     socket.subscribe(async (status) => {
       if (status !== "SUBSCRIBED") return;
       await socket.track({ clientId: me.clientId, since: me.since });
       await socket.send({ type: "broadcast", event: "hello", payload: {} });
-      setReady(true);
+      if (!cancelled) onReady();
     });
-  }
 
-  return () => {
-    if (socket) {
-      void socket.unsubscribe();
-      void client?.removeChannel(socket);
-    }
-    channel.current = null;
+    onChannel(socket);
+    close = () => {
+      const removal = client.removeChannel(socket);
+      leaving.set(topic, removal);
+      void removal.finally(() => {
+        if (leaving.get(topic) === removal) leaving.delete(topic);
+      });
+    };
   };
-}
 
-function connect(
-  id: string,
-  channel: ChannelRef,
-  latest: { current: Sync },
-  me: Occupant,
-  onPresence: (present: Map<string, number>) => void,
-  setReady: (ready: boolean) => void,
-) {
-  let cancelled = false;
-  let close: (() => void) | null = null;
-
-  void openChannel(id, channel, latest, me, onPresence, setReady).then((teardown) => {
-    if (cancelled) {
-      teardown();
-      return;
-    }
-    close = teardown;
+  void open().catch(() => {
+    if (!cancelled) onUnavailable();
   });
 
   return () => {
     cancelled = true;
+    onChannel(null);
     close?.();
-    close = null;
-    channel.current = null;
   };
 }
 
 export function useMatch(id: string) {
-  const [configured] = useState(isRealtimeConfigured);
-  const [me] = useState<Occupant | null>(() => (typeof window === "undefined" ? null : claimIdentity(id)));
+  const [configured, setConfigured] = useState(isRealtimeConfigured);
+  const [me, setMe] = useState<Occupant | null>(null);
   const [sightings, setSightings] = useState<Sighting[]>([]);
   const [present, setPresent] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [now, setNow] = useState(() => Date.now());
   const [ready, setReady] = useState(false);
 
   const channel = useRef<RealtimeChannel | null>(null);
-  const latest = useRef<Sync>(EMPTY_SYNC);
 
   const syncRaw = useSyncExternalStore(
     subscribe,
@@ -193,22 +192,30 @@ export function useMatch(id: string) {
     () => null,
   );
   const sync = useMemo(() => parseSync(syncRaw), [syncRaw]);
+
+  // claimed after hydration: the server has no identity, so rendering one on the first pass would mismatch
+  useEffect(() => setMe(claimIdentity(id)), [id]);
+
   useEffect(() => {
-    latest.current = sync;
-  }, [sync]);
-
-  const onPresence = useCallback((incoming: Map<string, number>) => {
-    const seenAt = Date.now();
-    setNow(seenAt);
-    setPresent(new Set(incoming.keys()));
-    setSightings((previous) => {
-      const byId = new Map(previous.map((seen) => [seen.clientId, seen]));
-      for (const [clientId, since] of incoming) byId.set(clientId, { clientId, since, lastSeen: seenAt });
-      return [...byId.values()];
+    if (!me) return;
+    return connect(id, me, {
+      onChannel: (socket) => {
+        channel.current = socket;
+      },
+      onPresence: (incoming) => {
+        const seenAt = Date.now();
+        setNow(seenAt);
+        setPresent(new Set(incoming.keys()));
+        setSightings((previous) => {
+          const byId = new Map(previous.map((seen) => [seen.clientId, seen]));
+          for (const [clientId, since] of incoming) byId.set(clientId, { clientId, since, lastSeen: seenAt });
+          return [...byId.values()];
+        });
+      },
+      onReady: () => setReady(true),
+      onUnavailable: () => setConfigured(false),
     });
-  }, []);
-
-  useEffect(() => (me ? connect(id, channel, latest, me, onPresence, setReady) : undefined), [id, me, onPresence]);
+  }, [id, me]);
 
   useEffect(() => {
     const beat = window.setInterval(() => writeItem(seenKey(id), String(Date.now())), HEARTBEAT_MS);
@@ -227,9 +234,9 @@ export function useMatch(id: string) {
     [sightings, present, now, me],
   );
 
-  const inkMovesFirst = sync.round % 2 === 0;
   const seat: Seat = me ? seatOf(seats, me.clientId) : SPECTATOR;
-  const myColor = colorOf(seat, inkMovesFirst);
+  const myColor = colorOf(seat, sync.round % 2 === 0);
+  const seated = canAct(seat);
 
   const push = useCallback(
     (next: Sync) => {
@@ -239,20 +246,18 @@ export function useMatch(id: string) {
     [id],
   );
 
-  const seated = canAct(seat);
-
   const playMove = useCallback(
     (col: number) => {
       if (!seated) return;
-      push({ moves: [...latest.current.moves, col], round: latest.current.round });
+      const current = readSync(id);
+      push({ moves: [...current.moves, col], round: current.round });
     },
-    [push, seated],
+    [id, push, seated],
   );
 
   const rematch = useCallback(() => {
-    if (!seated) return;
-    push({ moves: [], round: latest.current.round + 1 });
-  }, [push, seated]);
+    if (seated) push({ moves: [], round: readSync(id).round + 1 });
+  }, [id, push, seated]);
 
   return {
     seat,

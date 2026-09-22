@@ -86,7 +86,7 @@
   border-radius: var(--radius-lg);
 }
 
-.drop:disabled {
+.drop[aria-disabled="true"] {
   cursor: default;
 }
 

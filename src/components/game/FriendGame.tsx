@@ -16,6 +16,9 @@ export function FriendGame({ id }: { id: string }) {
     <section className={styles.game} aria-label="Four in a row with a friend">
       {game.copy.iWon && <Confetti key={game.roundKey} />}
 
+      <p className="visually-hidden" role="status">
+        {game.announcement}
+      </p>
       <p className={styles.kicker}>{game.copy.kicker}</p>
       <h2 className={styles.title}>{game.copy.title}</h2>
       {game.waiting && <InviteLink id={id} />}

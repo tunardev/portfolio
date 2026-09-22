@@ -34,7 +34,7 @@ export default async function PlayPage({ params }: { params: Promise<{ id: strin
         <ThemeToggle />
       </div>
 
-      <FriendGame id={matchId} />
+      <FriendGame key={matchId} id={matchId} />
     </main>
   );
 }

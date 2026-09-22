@@ -4,7 +4,7 @@ import { Confetti } from "./Confetti";
 import { EvalPanel } from "./EvalPanel";
 import { GameHeader } from "./GameHeader";
 import { TurnChart } from "./TurnChart";
-import { FIRST } from "./engine";
+import { FIRST, SECOND, type Cell } from "./engine";
 import { useModelGame } from "./useModelGame";
 import type { Stats } from "./stats";
 import { shortId } from "@/lib/realtime";
@@ -12,17 +12,31 @@ import styles from "./FourInARow.module.css";
 
 type Props = { onClose: () => void; stats: Stats | null; onStats: (stats: Stats) => void };
 
+function outcome(result: Cell) {
+  if (result === FIRST) return "You won.";
+  if (result === SECOND) return "It won.";
+  return "A draw.";
+}
+
 export function FourInARow({ onClose, stats, onStats }: Props) {
   const router = useRouter();
   const game = useModelGame(onStats);
   const played = game.moves.length;
 
   const inviteFriend = () => router.push(`/play/${shortId()}`);
+  const announcement = game.over
+    ? outcome(game.result)
+    : game.humanTurn && game.last
+      ? `It played column ${game.last[1] + 1}. Your turn.`
+      : "";
 
   return (
     <section className={styles.game} aria-label="Four in a row against the model">
       {game.over && game.result === FIRST && <Confetti key={played} />}
 
+      <p className="visually-hidden" role="status">
+        {announcement}
+      </p>
       <p className={styles.kicker}>
         Four in a row,{" "}
         {game.over ? `${played} moves` : `move ${played + 1}, ${game.humanTurn ? "your turn" : "thinking"}`}

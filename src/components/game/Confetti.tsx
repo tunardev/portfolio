@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 const PALETTE = ["--red", "--tint-sage", "--tint-sky", "--tint-manila", "--tint-blush", "--tint-mint", "--ink"];
 const FALLBACK_COLOR = "#d9472b";
@@ -27,36 +27,18 @@ type Piece = {
   born: number;
 };
 
-export function Confetti({ onDone }: { onDone?: () => void }) {
-  const done = useRef(onDone);
-
+export function Confetti() {
   useEffect(() => {
-    done.current = onDone;
-  }, [onDone]);
-
-  useEffect(() => {
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      done.current?.();
-    };
-
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      close();
-      return;
-    }
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      close();
-      return;
-    }
+    if (!ctx) return;
 
     const theme = getComputedStyle(document.documentElement);
     const colors = PALETTE.map((token) => theme.getPropertyValue(token).trim() || FALLBACK_COLOR);
 
+    canvas.setAttribute("aria-hidden", "true");
     Object.assign(canvas.style, {
       position: "fixed",
       inset: "0",
@@ -107,7 +89,6 @@ export function Confetti({ onDone }: { onDone?: () => void }) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
       canvas.remove();
-      close();
     };
 
     const frame = (now: number) => {

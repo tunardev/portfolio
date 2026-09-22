@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { COLS, EMPTY, FIRST, ROWS, SECOND, TOP_ROW, type Board as BoardState } from "./engine";
+import { COLS, EMPTY, FIRST, ROWS, SECOND, TOP_ROW, hasRoom, type Board as BoardState } from "./engine";
 import styles from "./FourInARow.module.css";
 
 const CELL = 76;
@@ -8,8 +8,8 @@ const PIECE_R = 24;
 const RING_R = 30;
 const MARKER_W = 8;
 
-export const BOARD_W = COLS * CELL;
-export const BOARD_H = GUTTER + ROWS * CELL;
+const BOARD_W = COLS * CELL;
+const BOARD_H = GUTTER + ROWS * CELL;
 
 const centerX = (col: number) => col * CELL + CELL / 2;
 const centerY = (row: number) => GUTTER + CELL / 2 + (TOP_ROW - row) * CELL;
@@ -30,7 +30,7 @@ export function Board({ board, canPlay, onPlay, last, winningLine, over, dim }: 
   return (
     <div className={styles.boardWrap} data-dim={dim || undefined}>
       <svg className={styles.board} viewBox={`0 0 ${BOARD_W} ${BOARD_H}`} aria-hidden="true">
-        {canPlay && hovered >= 0 && (
+        {canPlay && hasRoom(board, hovered) && (
           <path
             d={`M${centerX(hovered)} 6 L${centerX(hovered) - MARKER_W} 18 L${centerX(hovered) + MARKER_W} 18 Z`}
             fill="var(--ink)"
@@ -74,18 +74,22 @@ export function Board({ board, canPlay, onPlay, last, winningLine, over, dim }: 
         {Array.from({ length: COLS }, (_, col) => {
           const filled = board.reduce((count, cells) => count + (cells[col] !== EMPTY ? 1 : 0), 0);
           const full = filled === ROWS;
+          const playable = canPlay && !full;
 
           return (
+            // aria-disabled, not disabled: a disabled button drops focus to the body the moment a move ends the turn
             <button
               key={col}
               type="button"
               className={styles.drop}
-              disabled={!canPlay || full}
+              aria-disabled={!playable}
               aria-label={full ? `Column ${col + 1}, full` : `Drop in column ${col + 1}, ${filled} of ${ROWS} filled`}
               onMouseEnter={() => setHovered(col)}
               onFocus={() => setHovered(col)}
               onBlur={() => setHovered(-1)}
-              onClick={() => onPlay(col)}
+              onClick={() => {
+                if (playable) onPlay(col);
+              }}
             />
           );
         })}

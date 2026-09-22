@@ -13,15 +13,10 @@ export function InviteLink({ id }: { id: string }) {
     () => SITE_URL,
   );
   const [copied, setCopied] = useState(false);
-  const timer = useRef<number | null>(null);
+  const timer = useRef<number | undefined>(undefined);
   const link = `${origin}/play/${id}`;
 
-  useEffect(
-    () => () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    },
-    [],
-  );
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const copy = async () => {
     try {
@@ -30,7 +25,7 @@ export function InviteLink({ id }: { id: string }) {
       return;
     }
     setCopied(true);
-    if (timer.current) window.clearTimeout(timer.current);
+    window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopied(false), COPIED_FOR);
   };
 

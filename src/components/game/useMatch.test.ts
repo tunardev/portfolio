@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { COLS } from "./engine";
-import { isAhead, toSync } from "./useMatch";
+import { SEAT_GRACE_MS } from "./seats";
+import { claimIdentity, connect, isAhead, toSync } from "./useMatch";
 
 const EMPTY_SYNC = { moves: [], round: 0 };
 
@@ -39,6 +40,13 @@ describe("toSync", () => {
     expect(toSync({ moves: [3] })).toEqual(EMPTY_SYNC);
   });
 
+  test("refuses a round that is not a whole non-negative count", () => {
+    expect(toSync({ moves: [1, 2], round: 0.5 })).toEqual(EMPTY_SYNC);
+    expect(toSync({ moves: [1, 2], round: -3 })).toEqual(EMPTY_SYNC);
+    expect(toSync({ moves: [1], round: Number.NaN })).toEqual(EMPTY_SYNC);
+    expect(toSync({ moves: [1], round: Number.POSITIVE_INFINITY })).toEqual(EMPTY_SYNC);
+  });
+
   test("drops columns outside the board and keeps the valid ones", () => {
     expect(toSync({ moves: [-1, 0, COLS, 6, COLS + 4], round: 1 })).toEqual({ moves: [0, 6], round: 1 });
   });
@@ -72,30 +80,61 @@ describe("isAhead", () => {
   });
 });
 
-describe("toSync validates the round as strictly as the moves", () => {
-  test("a fractional round is refused outright", () => {
-    expect(toSync({ moves: [1, 2], round: 0.5 })).toEqual({ moves: [], round: 0 });
+describe("claimIdentity without usable storage", () => {
+  test("keeps the same client id across calls", () => {
+    const first = claimIdentity("no-storage-a", 1_000);
+    const again = claimIdentity("no-storage-a", 2_000);
+    expect(again.clientId).toBe(first.clientId);
   });
 
-  test("a negative round is refused outright", () => {
-    expect(toSync({ moves: [1, 2], round: -3 })).toEqual({ moves: [], round: 0 });
+  test("keeps its place in line when it comes back within the grace period", () => {
+    const first = claimIdentity("no-storage-b", 1_000);
+    expect(claimIdentity("no-storage-b", 1_000 + SEAT_GRACE_MS - 1).since).toBe(first.since);
   });
 
-  test("a non-finite round is refused outright", () => {
-    expect(toSync({ moves: [1], round: Number.NaN })).toEqual({ moves: [], round: 0 });
-    expect(toSync({ moves: [1], round: Number.POSITIVE_INFINITY })).toEqual({ moves: [], round: 0 });
+  test("goes to the back of the line after the grace period", () => {
+    claimIdentity("no-storage-c", 1_000);
+    const later = 1_000 + SEAT_GRACE_MS;
+    expect(claimIdentity("no-storage-c", later).since).toBe(later);
   });
 
-  test("a whole non-negative round is accepted", () => {
-    expect(toSync({ moves: [1], round: 0 })).toEqual({ moves: [1], round: 0 });
-    expect(toSync({ moves: [1], round: 7 })).toEqual({ moves: [1], round: 7 });
+  test("gives separate matches separate client ids", () => {
+    expect(claimIdentity("no-storage-d").clientId).not.toBe(claimIdentity("no-storage-e").clientId);
+  });
+});
+
+describe("connect when the realtime client fails to load", () => {
+  const me = { clientId: "me", since: 1 };
+  const failedLoad = () => Promise.reject(new Error("chunk failed to load"));
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  const listen = () => {
+    const calls = { unavailable: 0, ready: 0 };
+    const listeners = {
+      onChannel: () => {},
+      onPresence: () => {},
+      onReady: () => {
+        calls.ready += 1;
+      },
+      onUnavailable: () => {
+        calls.unavailable += 1;
+      },
+    };
+    return { calls, listeners };
+  };
+
+  test("reports the match as unavailable", async () => {
+    const { calls, listeners } = listen();
+    const stop = connect("load-fails", me, listeners, failedLoad);
+    await settle();
+    expect(calls).toEqual({ unavailable: 1, ready: 0 });
+    stop();
   });
 
-  test("an accepted round always decides colours consistently", () => {
-    for (const round of [0, 1, 2, 3, 50, 99]) {
-      const parsed = toSync({ moves: [], round });
-      expect(Number.isInteger(parsed.round % 2)).toBe(true);
-      expect([0, 1]).toContain(parsed.round % 2);
-    }
+  test("stays quiet once it has been torn down", async () => {
+    const { calls, listeners } = listen();
+    connect("load-fails-late", me, listeners, failedLoad)();
+    await settle();
+    expect(calls).toEqual({ unavailable: 0, ready: 0 });
   });
 });

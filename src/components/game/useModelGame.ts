@@ -1,4 +1,4 @@
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { EMPTY, FIRST, SECOND, hasRoom, isFull, winner, winningCells, type Board } from "./engine";
 import { loadNet, reply } from "./model";
 import type { Net } from "./net";
@@ -10,10 +10,24 @@ import { winChime } from "@/lib/sounds";
 const REPLY_DELAY = 320;
 const SEARCH_VERSION = "search";
 
+const trainedDate = (net: Net) =>
+  new Date(net.trainedAt).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
 export function useModelGame(onStats: (stats: Stats) => void) {
   const [state, dispatch] = useReducer(gameReducer, undefined, initialGame);
   const [trainedOn, setTrainedOn] = useState<string | null>(null);
   const net = useRef<Net | null>(null);
+  const replyTimer = useRef<number | undefined>(undefined);
+  // bumped on reset and unmount so a reply already in flight lands nowhere
+  const generation = useRef(0);
+
+  useEffect(
+    () => () => {
+      generation.current += 1;
+      window.clearTimeout(replyTimer.current);
+    },
+    [],
+  );
 
   const { board, moves, confidence } = state;
   const result = winner(board);
@@ -30,13 +44,14 @@ export function useModelGame(onStats: (stats: Stats) => void) {
     );
   };
 
-  const answer = async (after: GameState) => {
+  const answer = async (after: GameState, asked: number) => {
     net.current ??= await loadNet();
-    if (net.current && !trainedOn) {
-      setTrainedOn(new Date(net.current.trainedAt).toLocaleDateString("en-US", { month: "long", day: "numeric" }));
-    }
+    if (asked !== generation.current) return;
 
-    const modelReply = reply(net.current, after.board);
+    const loaded = net.current;
+    if (loaded) setTrainedOn((known) => known ?? trainedDate(loaded));
+
+    const modelReply = reply(loaded, after.board);
     dispatch({ type: "model", reply: modelReply });
 
     const next = gameReducer(after, { type: "model", reply: modelReply });
@@ -52,7 +67,14 @@ export function useModelGame(onStats: (stats: Stats) => void) {
       finish(after.moves, after.board);
       return;
     }
-    window.setTimeout(() => void answer(after), REPLY_DELAY);
+    const asked = generation.current;
+    replyTimer.current = window.setTimeout(() => void answer(after, asked), REPLY_DELAY);
+  };
+
+  const reset = () => {
+    generation.current += 1;
+    window.clearTimeout(replyTimer.current);
+    dispatch({ type: "reset" });
   };
 
   return {
@@ -70,6 +92,6 @@ export function useModelGame(onStats: (stats: Stats) => void) {
     winningLine: result !== EMPTY ? winningCells(board) : [],
     turning: over ? findTurning(confidence, result, moves) : null,
     play,
-    reset: () => dispatch({ type: "reset" }),
+    reset,
   };
 }
