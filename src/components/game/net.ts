@@ -39,6 +39,27 @@ export type Choice = {
 const PRIOR_TIEBREAK = 0.02;
 const DEPTH_BONUS = 0.01;
 
+function isLayer(value: unknown, inputs: number, outputs?: number): value is Layer {
+  const layer = value as Partial<Layer> | null;
+  if (!layer || !Array.isArray(layer.w) || !Array.isArray(layer.b)) return false;
+  if (layer.b.length === 0 || (outputs !== undefined && layer.b.length !== outputs)) return false;
+  return layer.w.length === layer.b.length * inputs && layer.w.every(Number.isFinite) && layer.b.every(Number.isFinite);
+}
+
+export function isNet(value: unknown): value is Net {
+  const net = value as Partial<Net> | null;
+  if (!net || typeof net.version !== "string" || typeof net.trainedAt !== "string" || !Array.isArray(net.hidden)) {
+    return false;
+  }
+
+  let width = INPUTS;
+  for (const layer of net.hidden) {
+    if (!isLayer(layer, width)) return false;
+    width = layer.b.length;
+  }
+  return isLayer(net.policy, width, COLS) && isLayer(net.value, width, 1);
+}
+
 export function encode(board: Board, player: Player): Float32Array {
   const planes = new Float32Array(INPUTS);
   for (let row = 0; row < ROWS; row++) {
@@ -86,6 +107,7 @@ export function predict(net: Net, board: Board, player: Player): Prediction {
   return { priors, value };
 }
 
+// mutates board while searching but always restores it before returning
 function search(net: Net, board: Board, player: Player, depth: number, alpha: number, beta: number): number {
   const won = winner(board);
   if (won === player) return 1 + depth * DEPTH_BONUS;
@@ -97,9 +119,10 @@ function search(net: Net, board: Board, player: Player, depth: number, alpha: nu
 
   let best = -Infinity;
   for (const col of legalMoves(board).sort((a, b) => priors[b] - priors[a])) {
-    const next = clone(board);
-    drop(next, col, player);
-    best = Math.max(best, -search(net, next, opponent(player), depth - 1, -beta, -alpha));
+    const row = drop(board, col, player);
+    const score = -search(net, board, opponent(player), depth - 1, -beta, -alpha);
+    board[row][col] = EMPTY;
+    best = Math.max(best, score);
     alpha = Math.max(alpha, best);
     if (alpha >= beta) break;
   }
@@ -108,25 +131,26 @@ function search(net: Net, board: Board, player: Player, depth: number, alpha: nu
 
 export function choose(net: Net, board: Board, player: Player, depth = 4): Choice {
   const { priors } = predict(net, board, player);
+  const scratch = clone(board);
 
   let move = -1;
   let best = -Infinity;
-  for (const col of legalMoves(board)) {
-    const next = clone(board);
-    drop(next, col, player);
-    const value = -search(net, next, opponent(player), depth - 1, -Infinity, Infinity) + priors[col] * PRIOR_TIEBREAK;
+  for (const col of legalMoves(scratch)) {
+    const row = drop(scratch, col, player);
+    const value =
+      -search(net, scratch, opponent(player), depth - 1, -Infinity, Infinity) + priors[col] * PRIOR_TIEBREAK;
+    scratch[row][col] = EMPTY;
     if (value > best) {
       best = value;
       move = col;
     }
   }
 
-  const after = clone(board);
-  drop(after, move, player);
+  drop(scratch, move, player);
 
   let expectedReply = -1;
-  if (winner(after) === EMPTY && !isFull(after)) {
-    const replyPriors = predict(net, after, opponent(player)).priors;
+  if (winner(scratch) === EMPTY && !isFull(scratch)) {
+    const replyPriors = predict(net, scratch, opponent(player)).priors;
     expectedReply = replyPriors.indexOf(Math.max(...replyPriors));
   }
 

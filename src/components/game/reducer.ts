@@ -1,4 +1,4 @@
-import { EMPTY, FIRST, SECOND, clone, drop, emptyBoard, isFull, winner, type Board } from "./engine";
+import { EMPTY, FIRST, SECOND, clone, drop, emptyBoard, hasRoom, isFull, winner, type Board } from "./engine";
 import type { Reply } from "./model";
 
 export type GameState = {
@@ -37,6 +37,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return initialGame();
 
     case "human": {
+      if (state.thinking || isOver(state.board) || !hasRoom(state.board, action.col)) return state;
       const board = clone(state.board);
       const row = drop(board, action.col, FIRST);
       const over = isOver(board);
@@ -52,6 +53,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "model": {
+      // a reply that lands after a reset belongs to the previous game
+      if (!state.thinking || !hasRoom(state.board, action.reply.move)) return state;
       const board = clone(state.board);
       const row = drop(board, action.reply.move, SECOND);
       const won = winner(board) === SECOND;

@@ -25,12 +25,12 @@ describe("waiting for a friend", () => {
     expect(copy.kicker).toBe("Four in a row with a friend");
   });
 
-  test("names your colour for both seats", () => {
+  test("names your colour and whether you move first or second", () => {
     expect(friendCopy(standing({ waiting: true, myColor: FIRST })).lede).toBe(
       "You play ink and move first. Your friend plays red.",
     );
     expect(friendCopy(standing({ waiting: true, myColor: SECOND })).lede).toBe(
-      "You play red and move first. Your friend plays ink.",
+      "You play red and move second. Your friend plays ink.",
     );
   });
 });
@@ -75,9 +75,11 @@ describe("finished games", () => {
     );
   });
 
-  test("the rematch line hands the first move to whoever lost", () => {
-    expect(friendCopy(standing({ over: true, result: FIRST, myColor: FIRST })).lede).toContain("so they move first");
-    expect(friendCopy(standing({ over: true, result: FIRST, myColor: SECOND })).lede).toContain("so you move first");
+  test("the rematch line hands the first move to whoever played red, whatever the result", () => {
+    for (const result of [FIRST, SECOND, EMPTY] as const) {
+      expect(friendCopy(standing({ over: true, result, myColor: FIRST })).lede).toContain("so they move first");
+      expect(friendCopy(standing({ over: true, result, myColor: SECOND })).lede).toContain("so you move first");
+    }
   });
 });
 

@@ -14,6 +14,7 @@ import {
   isFull,
   legalMoves,
   opponent,
+  scoreMoves,
   think,
   winProbability,
   winner,
@@ -128,6 +129,22 @@ describe("winningCells", () => {
 
   test("returns an empty list when nobody has won", () => {
     expect(winningCells(emptyBoard())).toEqual([]);
+  });
+
+  test("walks a falling diagonal from its lowest cell", () => {
+    const board = place([
+      [0, 6, FIRST],
+      [1, 5, FIRST],
+      [2, 4, FIRST],
+      [3, 3, FIRST],
+    ]);
+
+    expect(winningCells(board)).toEqual([
+      [0, 6],
+      [1, 5],
+      [2, 4],
+      [3, 3],
+    ]);
   });
 });
 
@@ -268,5 +285,33 @@ describe("think", () => {
   test("picks a legal column on an empty board", () => {
     const analysis = think(emptyBoard(), SECOND, 3);
     expect(legalMoves(emptyBoard())).toContain(analysis.move);
+  });
+
+  test("leaves the board it was given untouched", () => {
+    const board = play([
+      [3, FIRST],
+      [3, SECOND],
+      [2, FIRST],
+      [4, SECOND],
+    ]);
+    const before = board.map((row) => [...row]);
+
+    think(board, FIRST, 4);
+    scoreMoves(board, SECOND, 3);
+
+    expect(board).toEqual(before);
+  });
+
+  test("the expected reply is the opponent's best answer to the chosen move", () => {
+    const board = play([
+      [3, FIRST],
+      [3, SECOND],
+    ]);
+    const analysis = think(board, FIRST, 4);
+    drop(board, analysis.move, FIRST);
+    const replies = scoreMoves(board, SECOND, 1);
+    const best = Math.max(...replies.map((reply) => reply.score));
+
+    expect(replies.find((reply) => reply.score === best)?.col).toBe(analysis.expectedReply);
   });
 });

@@ -1,9 +1,10 @@
-import { FIRST, type Cell } from "./engine";
+import { EMPTY, FIRST, type Cell } from "./engine";
 
-export type Turning = { move: number; column: number } | null;
+// move indexes the confidence series, which gains one reading per exchange; ply is the human move that opened it
+export type Turning = { move: number; ply: number; column: number } | null;
 
 export function findTurning(confidence: number[], result: Cell, moves: number[]): Turning {
-  if (confidence.length < 3) return null;
+  if (result === EMPTY || confidence.length < 3) return null;
 
   let turnedAt = 0;
   let biggestSwing = 0;
@@ -15,5 +16,7 @@ export function findTurning(confidence: number[], result: Cell, moves: number[])
     }
   }
 
-  return turnedAt > 0 ? { move: turnedAt, column: moves[turnedAt - 1] } : null;
+  if (turnedAt === 0) return null;
+  const ply = 2 * turnedAt - 1;
+  return { move: turnedAt, ply, column: moves[ply - 1] };
 }

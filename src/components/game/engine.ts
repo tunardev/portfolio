@@ -60,50 +60,43 @@ export function isFull(board: Board) {
   return board[TOP_ROW].every((cell) => cell !== EMPTY);
 }
 
-function runFrom(board: Board, row: number, col: number, dRow: number, dCol: number, limit: number) {
-  const player = board[row][col];
-  const cells: [number, number][] = [[row, col]];
-  let r = row + dRow;
-  let c = col + dCol;
-  while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player && cells.length < limit) {
-    cells.push([r, c]);
-    r += dRow;
-    c += dCol;
+type Line = [row: number, col: number, dRow: number, dCol: number];
+
+function findLine(board: Board): Line | null {
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const player = board[row][col];
+      if (player === EMPTY) continue;
+      for (const [dRow, dCol] of DIRECTIONS) {
+        let length = 1;
+        let r = row + dRow;
+        let c = col + dCol;
+        while (length < CONNECT && r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
+          length++;
+          r += dRow;
+          c += dCol;
+        }
+        if (length === CONNECT) return [row, col, dRow, dCol];
+      }
+    }
   }
-  return cells;
+  return null;
 }
 
 export function winner(board: Board): Cell {
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      if (board[row][col] === EMPTY) continue;
-      for (const [dRow, dCol] of DIRECTIONS) {
-        if (runFrom(board, row, col, dRow, dCol, CONNECT).length === CONNECT) return board[row][col];
-      }
-    }
-  }
-  return EMPTY;
+  const line = findLine(board);
+  return line ? board[line[0]][line[1]] : EMPTY;
 }
 
 export function winningCells(board: Board): [number, number][] {
-  for (let row = 0; row < ROWS; row++) {
-    for (let col = 0; col < COLS; col++) {
-      if (board[row][col] === EMPTY) continue;
-      for (const [dRow, dCol] of DIRECTIONS) {
-        const run = runFrom(board, row, col, dRow, dCol, CONNECT);
-        if (run.length === CONNECT) return run;
-      }
-    }
-  }
-  return [];
+  const line = findLine(board);
+  if (!line) return [];
+  const [row, col, dRow, dCol] = line;
+  return Array.from({ length: CONNECT }, (_, i): [number, number] => [row + i * dRow, col + i * dCol]);
 }
 
-function scoreWindow(cells: Cell[], me: Player): number {
-  const them = opponent(me);
-  const mine = cells.filter((cell) => cell === me).length;
-  const theirs = cells.filter((cell) => cell === them).length;
-  const empty = cells.filter((cell) => cell === EMPTY).length;
-
+function scoreWindow(mine: number, theirs: number): number {
+  const empty = CONNECT - mine - theirs;
   if (mine === CONNECT) return 100_000;
   if (theirs === CONNECT) return -100_000;
   if (mine === 3 && empty === 1) return 60;
@@ -123,8 +116,14 @@ function evaluateForSecond(board: Board): number {
         const endRow = row + (CONNECT - 1) * dRow;
         const endCol = col + (CONNECT - 1) * dCol;
         if (endRow < 0 || endRow >= ROWS || endCol < 0 || endCol >= COLS) continue;
-        const window = Array.from({ length: CONNECT }, (_, i) => board[row + i * dRow][col + i * dCol]);
-        score += scoreWindow(window, SECOND);
+        let mine = 0;
+        let theirs = 0;
+        for (let i = 0; i < CONNECT; i++) {
+          const cell = board[row + i * dRow][col + i * dCol];
+          if (cell === SECOND) mine++;
+          else if (cell === FIRST) theirs++;
+        }
+        score += scoreWindow(mine, theirs);
       }
     }
   }
@@ -132,6 +131,7 @@ function evaluateForSecond(board: Board): number {
   return score;
 }
 
+// mutates board while searching but always restores it before returning
 function negamax(board: Board, depth: number, alpha: number, beta: number, player: Player): number {
   const won = winner(board);
   if (won === player) return DECIDED + depth;
@@ -141,9 +141,10 @@ function negamax(board: Board, depth: number, alpha: number, beta: number, playe
 
   let best = -Infinity;
   for (const col of legalMoves(board)) {
-    const next = clone(board);
-    drop(next, col, player);
-    best = Math.max(best, -negamax(next, depth - 1, -beta, -alpha, opponent(player)));
+    const row = drop(board, col, player);
+    const score = -negamax(board, depth - 1, -beta, -alpha, opponent(player));
+    board[row][col] = EMPTY;
+    best = Math.max(best, score);
     alpha = Math.max(alpha, best);
     if (alpha >= beta) break;
   }
@@ -159,21 +160,26 @@ export type Analysis = {
 };
 
 export function scoreMoves(board: Board, player: Player, depth: number): MoveScore[] {
-  return legalMoves(board).map((col) => {
-    const next = clone(board);
-    drop(next, col, player);
-    return { col, score: -negamax(next, depth - 1, -Infinity, Infinity, opponent(player)) };
+  const scratch = clone(board);
+  return legalMoves(scratch).map((col) => {
+    const row = drop(scratch, col, player);
+    const score = -negamax(scratch, depth - 1, -Infinity, Infinity, opponent(player));
+    scratch[row][col] = EMPTY;
+    return { col, score };
   });
 }
 
+function bestMove(board: Board, player: Player, depth: number): MoveScore {
+  return scoreMoves(board, player, depth).reduce((a, b) => (b.score > a.score ? b : a));
+}
+
 export function think(board: Board, player: Player, depth: number): Analysis {
-  const scores = scoreMoves(board, player, depth);
-  const best = scores.reduce((a, b) => (b.score > a.score ? b : a));
+  const best = bestMove(board, player, depth);
 
   const after = clone(board);
   drop(after, best.col, player);
   const settled = winner(after) !== EMPTY || isFull(after);
-  const expectedReply = settled ? -1 : think(after, opponent(player), Math.max(1, depth - REPLY_DEPTH_DROP)).move;
+  const expectedReply = settled ? -1 : bestMove(after, opponent(player), Math.max(1, depth - REPLY_DEPTH_DROP)).col;
 
   return { move: best.col, score: best.score, expectedReply };
 }

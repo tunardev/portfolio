@@ -36,7 +36,7 @@ export function GameHeader({ over, result, stats, turning, onInvite }: Props) {
         <h2 className={styles.title}>{headline(result, stats)}</h2>
         {turning && (
           <p className={`${styles.lede} ${styles.ledeStrong}`}>
-            The game turned at move {turning.move}, in column {turning.column + 1}.{" "}
+            The game turned at move {turning.ply}, in column {turning.column + 1}.{" "}
             {result === FIRST
               ? "It expected a different reply and never recovered."
               : "It saw the line from there and did not let go."}

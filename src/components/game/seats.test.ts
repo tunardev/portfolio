@@ -28,6 +28,11 @@ describe("seatOrder is deterministic", () => {
     expect(seatOrder([at("z", 5), at("a", 5)]).map((o) => o.clientId)).toEqual(["a", "z"]);
   });
 
+  test("breaks ties by code unit rather than by locale collation", () => {
+    expect(seatOrder([at("a", 5), at("B", 5)]).map((o) => o.clientId)).toEqual(["B", "a"]);
+    expect(seatOrder([at("z", 5), at("aa", 5)]).map((o) => o.clientId)).toEqual(["aa", "z"]);
+  });
+
   test("does not mutate the input", () => {
     const input = [at("b", 2), at("a", 1)];
     seatOrder(input);

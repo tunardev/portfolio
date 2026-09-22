@@ -8,10 +8,11 @@ const BASELINE = 2;
 
 type Props = { confidence: number[]; moves: number; turning: Turning; trainedOn: string | null };
 
+const x = (index: number, span: number) => (index / span) * CHART_W;
+const y = (value: number) => CHART_H - value * PLOT_H - BASELINE;
+
 export function TurnChart({ confidence, moves, turning, trainedOn }: Props) {
   const span = Math.max(1, confidence.length - 1);
-  const x = (index: number) => (index / span) * CHART_W;
-  const y = (value: number) => CHART_H - value * PLOT_H - BASELINE;
 
   return (
     <div className={styles.chart}>
@@ -26,13 +27,13 @@ export function TurnChart({ confidence, moves, turning, trainedOn }: Props) {
           strokeDasharray="3 5"
         />
         <path
-          d={confidence.map((value, i) => `${i === 0 ? "M" : "L"}${x(i)} ${y(value)}`).join(" ")}
+          d={confidence.map((value, i) => `${i === 0 ? "M" : "L"}${x(i, span)} ${y(value)}`).join(" ")}
           stroke="var(--red)"
           strokeWidth={2}
           fill="none"
           strokeLinejoin="round"
         />
-        {turning && <circle cx={x(turning.move)} cy={y(confidence[turning.move])} r={5} fill="var(--red)" />}
+        {turning && <circle cx={x(turning.move, span)} cy={y(confidence[turning.move])} r={5} fill="var(--red)" />}
       </svg>
       <div className={styles.axis}>
         <span>move 1</span>

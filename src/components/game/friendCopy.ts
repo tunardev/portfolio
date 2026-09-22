@@ -53,8 +53,9 @@ export function friendCopy(standing: Standing) {
   if (standing.seat === SPECTATOR) return spectatorCopy(standing);
 
   const { over, result, myColor, mine, joined, waiting, watching } = standing;
-  const you = myColor === FIRST ? "ink" : "red";
-  const them = myColor === FIRST ? "red" : "ink";
+  const inkIsMine = myColor === FIRST;
+  const you = inkIsMine ? "ink" : "red";
+  const them = inkIsMine ? "red" : "ink";
   const iWon = over && result !== EMPTY && result === myColor;
   const kicker = `Four in a row with a friend${progress(standing)}`;
   const seen = watching > 0 ? ` ${watchers(watching)}.` : "";
@@ -63,14 +64,14 @@ export function friendCopy(standing: Standing) {
     return {
       kicker,
       title: "Send this link. The board starts the moment they open it.",
-      lede: `You play ${you} and move first. Your friend plays ${them}.`,
+      lede: `You play ${you} and move ${inkIsMine ? "first" : "second"}. Your friend plays ${them}.`,
       presence: "Waiting for your friend to open the link.",
       iWon,
     };
   }
 
   if (over) {
-    const movesFirst = iWon || result === EMPTY ? "they" : "you";
+    const movesFirst = inkIsMine ? "they" : "you";
     return {
       kicker,
       title: result === EMPTY ? "A draw. Rare, and fair." : iWon ? "You won." : "They won.",
@@ -84,8 +85,8 @@ export function friendCopy(standing: Standing) {
     kicker,
     title: mine ? "Your move." : "Their move.",
     lede: `${joined ? "Your friend is here." : "Your friend stepped away; the board keeps their moves."} Ink is ${
-      myColor === FIRST ? "you" : "them"
-    }, red is ${myColor === FIRST ? "them" : "you"}. Tap a column, the ring is the last move.`,
+      inkIsMine ? "you" : "them"
+    }, red is ${inkIsMine ? "them" : "you"}. Tap a column, the ring is the last move.`,
     presence: `${joined ? "Both here." : "Only you here right now."}${seen}`,
     iWon,
   };

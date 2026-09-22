@@ -16,8 +16,11 @@ export type SeatMap = { ink: string | null; red: string | null; spectators: stri
 
 export const EMPTY_SEATS: SeatMap = { ink: null, red: null, spectators: [] };
 
+// code-unit order, not localeCompare: every client must agree regardless of its locale
+const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 export function seatOrder(occupants: Occupant[]): Occupant[] {
-  return [...occupants].sort((a, b) => a.since - b.since || a.clientId.localeCompare(b.clientId));
+  return [...occupants].sort((a, b) => a.since - b.since || byId(a.clientId, b.clientId));
 }
 
 export function assignSeats(occupants: Occupant[]): SeatMap {
@@ -49,15 +52,19 @@ export function withSelf(occupants: Occupant[], me: Occupant): Occupant[] {
 }
 
 export function holdingSeats(sightings: Sighting[], present: ReadonlySet<string>, now: number): Occupant[] {
-  return sightings
-    .filter((seen) => present.has(seen.clientId) || now - seen.lastSeen < SEAT_GRACE_MS)
-    .map(({ clientId, since }) => ({ clientId, since }));
+  const holding: Occupant[] = [];
+  for (const { clientId, since, lastSeen } of sightings) {
+    if (present.has(clientId) || now - lastSeen < SEAT_GRACE_MS) holding.push({ clientId, since });
+  }
+  return holding;
 }
 
 export function nextExpiry(sightings: Sighting[], present: ReadonlySet<string>, now: number): number | null {
-  const waiting = sightings
-    .filter((seen) => !present.has(seen.clientId))
-    .map((seen) => seen.lastSeen + SEAT_GRACE_MS - now)
-    .filter((remaining) => remaining > 0);
-  return waiting.length ? Math.min(...waiting) : null;
+  let soonest: number | null = null;
+  for (const { clientId, lastSeen } of sightings) {
+    if (present.has(clientId)) continue;
+    const remaining = lastSeen + SEAT_GRACE_MS - now;
+    if (remaining > 0 && (soonest === null || remaining < soonest)) soonest = remaining;
+  }
+  return soonest;
 }

@@ -1,5 +1,5 @@
 import { SECOND, think, winProbability, type Board } from "./engine";
-import { choose, type Net } from "./net";
+import { choose, isNet, type Net } from "./net";
 
 const WEIGHTS_URL = "/model/weights.json";
 const SEARCH_DEPTH = 6;
@@ -11,7 +11,8 @@ let weights: Promise<Net | null> | null = null;
 
 export function loadNet() {
   weights ??= fetch(WEIGHTS_URL)
-    .then((response) => (response.ok ? (response.json() as Promise<Net>) : null))
+    .then((response) => (response.ok ? response.json() : null))
+    .then((json: unknown) => (isNet(json) ? json : null))
     .catch(() => null);
   return weights;
 }
