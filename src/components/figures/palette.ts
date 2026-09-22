@@ -5,7 +5,9 @@ export const STAGE_H = 224;
 
 export type Figure = {
   caption: string;
+  /** length of one loop in units of t */
   duration: number;
+  /** wall-clock seconds per unit of t */
   pace: number;
   View: (props: { t: number }) => ReactNode;
 };
@@ -14,7 +16,13 @@ export const INK = "var(--ink)";
 export const RED = "var(--red)";
 export const SOFT = "var(--ink-soft)";
 export const PAPER = "var(--paper)";
-export const ink = (a: number) => `color-mix(in srgb, var(--ink) ${Math.round(a * 100)}%, transparent)`;
-export const red = (a: number) => `color-mix(in srgb, var(--red) ${Math.round(a * 100)}%, transparent)`;
+
+const translucent = (color: string) => (alpha: number) =>
+  `color-mix(in srgb, ${color} ${Math.round(alpha * 100)}%, transparent)`;
+
+export const ink = translucent(INK);
+export const red = translucent(RED);
+export const paper = translucent(PAPER);
+
 export const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 export const easeOut = (u: number) => 1 - (1 - clamp01(u)) ** 3;
