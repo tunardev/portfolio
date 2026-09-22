@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
-import { OG_DOMAIN, OG_SIZE, OgCard, ogFonts } from "@/lib/og/card";
+import { OG_DOMAIN, OG_SIZE, ogFonts } from "@/lib/og/assets";
+import { OgCard } from "@/lib/og/card";
 import { AUTHOR, BLOG_TAGLINE } from "@/lib/site";
 
 export const alt = `${AUTHOR}'s blog`;
