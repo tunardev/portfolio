@@ -13,11 +13,7 @@ const BOOKEND = { width: 10, height: 114 };
 const CASCADE_MS = 22;
 const REACH_ABOVE = 12;
 
-const lefts = shelf.reduce<number[]>((acc, _, i) => {
-  acc.push(i === 0 ? 0 : acc[i - 1] + shelf[i - 1].width + GAP);
-  return acc;
-}, []);
-
+const lefts = shelf.map((_, i) => shelf.slice(0, i).reduce((x, paper) => x + paper.width + GAP, 0));
 const shelfRight = lefts[shelf.length - 1] + shelf[shelf.length - 1].width;
 const bookendLeft = Math.round(shelfRight + BOOKEND.height * LEAN_TAN);
 const tallest = Math.max(...shelf.map((paper) => paper.height));

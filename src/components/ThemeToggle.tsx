@@ -1,52 +1,27 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { type Theme, useTheme } from "./useTheme";
 import styles from "./ThemeToggle.module.css";
-
-type Theme = "light" | "dark";
 
 const STORAGE_KEY = "theme";
 
-const listeners = new Set<() => void>();
-
-function readTheme(): Theme {
-  const forced = document.documentElement.dataset.theme;
-  if (forced === "light" || forced === "dark") return forced;
-  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  const media = matchMedia("(prefers-color-scheme: dark)");
-  media.addEventListener("change", listener);
-
-  return () => {
-    listeners.delete(listener);
-    media.removeEventListener("change", listener);
-  };
-}
-
-function toggleTheme() {
-  const next: Theme = readTheme() === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
+function applyTheme(theme: Theme) {
+  document.documentElement.dataset.theme = theme;
   try {
-    localStorage.setItem(STORAGE_KEY, next);
+    localStorage.setItem(STORAGE_KEY, theme);
   } catch {}
-  for (const listener of listeners) listener();
 }
 
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, readTheme, () => "unknown" as const);
-  const dark = theme === "dark";
+  const dark = useTheme() === "dark";
 
   return (
     <button
       type="button"
       className={styles.toggle}
-      onClick={toggleTheme}
+      onClick={() => applyTheme(dark ? "light" : "dark")}
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Light" : "Dark"}
-      data-theme-state={theme}
     >
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" className={styles.icon}>
         <path

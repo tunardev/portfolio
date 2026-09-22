@@ -3,15 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./EmailCopy.module.css";
 
+const COPIED_MS = 1200;
+
 export function EmailCopy({ address }: { address: string }) {
   const [copied, setCopied] = useState(false);
-  const timer = useRef<number | null>(null);
+  const timer = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    return () => {
-      if (timer.current) window.clearTimeout(timer.current);
-    };
-  }, []);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   async function copy() {
     try {
@@ -21,16 +19,16 @@ export function EmailCopy({ address }: { address: string }) {
       return;
     }
     setCopied(true);
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 1200);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setCopied(false), COPIED_MS);
   }
 
   return (
     <span className={styles.wrap}>
-      <button type="button" className={styles.email} onClick={copy}>
+      <button type="button" className={styles.email} onClick={copy} aria-label={`Copy ${address}`}>
         {address}
       </button>
-      <span className={styles.copied} data-on={copied ? "" : undefined} aria-live="polite">
+      <span className={styles.copied} data-on={copied || undefined} aria-live="polite">
         {copied ? "Copied" : ""}
       </span>
     </span>

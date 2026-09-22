@@ -8,7 +8,6 @@
   --line: #e5e2dc;
   --wash: #f4f2ed;
   --red: #d9472b;
-  --sage: #dce8d3;
 
   --tint-sage: #dce8d3;
   --tint-sky: #d9e4f0;
@@ -16,8 +15,8 @@
   --tint-blush: #f1dcd8;
   --tint-stone: #e4e3de;
   --tint-mint: #d4e8e0;
+  --sage: var(--tint-sage);
 
-  --edge: color-mix(in srgb, var(--ink) 14%, transparent);
   --underline: color-mix(in srgb, var(--ink) 35%, transparent);
   --underline-strong: color-mix(in srgb, var(--ink) 45%, transparent);
 
@@ -93,7 +92,6 @@
     --line: #2a2927;
     --wash: #1c1b1a;
     --red: #e8593d;
-    --sage: #24301f;
 
     --tint-sage: #24301f;
     --tint-sky: #1f2a36;
@@ -114,7 +112,6 @@
   --line: #2a2927;
   --wash: #1c1b1a;
   --red: #e8593d;
-  --sage: #24301f;
 
   --tint-sage: #24301f;
   --tint-sky: #1f2a36;

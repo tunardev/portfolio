@@ -1,14 +1,19 @@
-import styles from "./Glyph.module.css";
-
 import type { GlyphName } from "@/lib/glyphs";
-
-const INK = "currentColor";
+import styles from "./Glyph.module.css";
 
 export function Glyph({ name }: { name: GlyphName }) {
   return (
-    <svg className={styles.glyph} width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <svg
+      className={styles.glyph}
+      width="28"
+      height="28"
+      viewBox="0 0 28 28"
+      fill="none"
+      stroke="currentColor"
+      aria-hidden="true"
+    >
       {name === "raft" && (
-        <g stroke={INK} strokeWidth="1.3">
+        <g strokeWidth="1.3">
           <path d="M14 8 L7 20 M14 8 L21 20 M7 20 H21" className={styles.soft} />
           <circle cx="7" cy="20" r="2.8" fill="var(--paper)" />
           <circle cx="21" cy="20" r="2.8" fill="var(--paper)" />
@@ -17,7 +22,7 @@ export function Glyph({ name }: { name: GlyphName }) {
         </g>
       )}
       {name === "wal" && (
-        <g stroke={INK} strokeWidth="1.2">
+        <g strokeWidth="1.2">
           <rect x="1.5" y="10.5" width="4.4" height="7" rx="1" fill="currentColor" fillOpacity="0.14" />
           <rect x="7" y="10.5" width="4.4" height="7" rx="1" fill="currentColor" fillOpacity="0.14" />
           <rect x="12.5" y="10.5" width="4.4" height="7" rx="1" fill="currentColor" fillOpacity="0.14" />
@@ -34,7 +39,7 @@ export function Glyph({ name }: { name: GlyphName }) {
         </g>
       )}
       {name === "ring" && (
-        <g stroke={INK} strokeWidth="1.3">
+        <g strokeWidth="1.3">
           <circle cx="14" cy="14" r="10" className={styles.soft} />
           <circle cx="14" cy="4" r="2" fill="var(--paper)" />
           <circle cx="23.5" cy="17" r="2" fill="var(--paper)" />
@@ -45,7 +50,7 @@ export function Glyph({ name }: { name: GlyphName }) {
         </g>
       )}
       {name === "backprop" && (
-        <g stroke={INK} strokeWidth="1.2">
+        <g strokeWidth="1.2">
           <path d="M5 9 L14 6 M5 9 L14 14 M5 9 L14 22 M5 19 L14 6 M5 19 L14 14 M5 19 L14 22" className={styles.soft} />
           <path d="M14 6 L23 14 M14 14 L23 14 M14 22 L23 14" className={`${styles.hot} ${styles.wire}`} />
           {[
@@ -61,7 +66,7 @@ export function Glyph({ name }: { name: GlyphName }) {
         </g>
       )}
       {name === "merkle" && (
-        <g stroke={INK} strokeWidth="1.2">
+        <g strokeWidth="1.2">
           <path d="M14 6 L8 14 M14 6 L20 14 M8 14 L5 22 M8 14 L11 22 M20 14 L23 22" className={styles.soft} />
           <path d="M17 22 L20 14 L14 6" className={`${styles.hot} ${styles.wire}`} />
           <rect x="11.5" y="4" width="5" height="4" rx="1" fill="var(--paper)" />
@@ -74,7 +79,7 @@ export function Glyph({ name }: { name: GlyphName }) {
         </g>
       )}
       {name === "move" && (
-        <g stroke={INK} strokeWidth="1.2">
+        <g strokeWidth="1.2">
           <path d="M17 14 H26 M23 11 L26 14 L23 17" className={styles.soft} />
           <g className={`${styles.hot} ${styles.slide}`}>
             <rect x="2" y="10.5" width="4.4" height="7" rx="1" fill="currentColor" fillOpacity="0.14" />

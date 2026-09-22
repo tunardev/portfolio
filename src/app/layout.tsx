@@ -17,11 +17,13 @@ const serif = Newsreader({
   display: "swap",
 });
 
+const HOME_TITLE = `${SITE_NAME}, self-taught engineer`;
+
 const THEME_BEFORE_PAINT = `try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: `${SITE_NAME}, self-taught engineer`, template: `%s, ${SITE_NAME}` },
+  title: { default: HOME_TITLE, template: `%s, ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   authors: [{ name: AUTHOR, url: SITE_URL }],
@@ -42,7 +44,7 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME}, self-taught engineer`,
+    title: HOME_TITLE,
     description: SITE_DESCRIPTION,
     locale: "en_US",
   },
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: X_HANDLE,
     creator: X_HANDLE,
-    title: `${SITE_NAME}, self-taught engineer`,
+    title: HOME_TITLE,
     description: SITE_DESCRIPTION,
   },
   robots: {

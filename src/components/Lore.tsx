@@ -20,7 +20,7 @@ export function Lore({ children }: { children: ReactNode }) {
         how I got here
         <Chevron direction="down" />
       </button>
-      <div id={bodyId} className={styles.body} data-open={open || undefined}>
+      <div id={bodyId} className={styles.body} data-open={open || undefined} inert={!open}>
         <div className={styles.inner}>{children}</div>
       </div>
     </div>

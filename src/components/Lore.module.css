@@ -8,10 +8,6 @@
   align-self: flex-start;
 }
 
-.toggle svg {
-  transition: transform var(--speed-base) var(--ease-out);
-}
-
 .toggle[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }

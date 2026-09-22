@@ -1,3 +1,5 @@
-export type GlyphName = "raft" | "wal" | "ring" | "backprop" | "merkle" | "move";
+const NAMES = ["raft", "wal", "ring", "backprop", "merkle", "move"] as const;
 
-export const GLYPHS: GlyphName[] = ["raft", "wal", "ring", "backprop", "merkle", "move"];
+export type GlyphName = (typeof NAMES)[number];
+
+export const GLYPHS: GlyphName[] = [...NAMES];

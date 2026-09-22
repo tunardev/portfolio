@@ -38,12 +38,25 @@
   opacity: 0;
 }
 
-.toggle[data-theme-state="dark"] .moon {
+/* keyed off the root, not react state, so the server html already shows the right icon */
+:root[data-theme="dark"] .moon {
   transform: rotate(60deg) scale(0.6);
   opacity: 0;
 }
 
-.toggle[data-theme-state="dark"] .sun {
+:root[data-theme="dark"] .sun {
   transform: none;
   opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .moon {
+    transform: rotate(60deg) scale(0.6);
+    opacity: 0;
+  }
+
+  :root:not([data-theme="light"]) .sun {
+    transform: none;
+    opacity: 1;
+  }
 }

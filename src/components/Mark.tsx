@@ -17,12 +17,3 @@ export function MarkIcon({ size = 18 }: { size?: number }) {
     </svg>
   );
 }
-
-export function TileMark({ size = 36 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" style={{ display: "block" }}>
-      <rect width="16" height="16" rx="3.6" fill="currentColor" />
-      <path d="M2.6 5.2H5.4A1.9 1.9 0 1 1 9.2 5.2H11.6V7.5A1.9 1.9 0 1 1 11.6 11.3V12.8H2.6Z" fill="var(--paper)" />
-    </svg>
-  );
-}
