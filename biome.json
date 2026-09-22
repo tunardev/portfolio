@@ -45,6 +45,7 @@
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noUnusedFunctionParameters": "error",
+        "noUndeclaredDependencies": "error",
         "useUniqueElementIds": "off"
       },
       "suspicious": {
