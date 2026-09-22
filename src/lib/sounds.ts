@@ -3,15 +3,30 @@ let masterNode: AudioNode | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 let sounding: { env: GainNode; source: AudioBufferSourceNode } | null = null;
 
-function audio(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+// a resume() that only settles on some later gesture would fire this sound long after its moment
+const STALE_RESUME_MS = 250;
+
+function play(sound: (ac: AudioContext, now: number) => void) {
+  if (typeof window === "undefined") return;
   try {
     audioContext ??= new AudioContext();
-    if (audioContext.state === "suspended") void audioContext.resume();
-    return audioContext;
   } catch {
-    return null;
+    return;
   }
+
+  const ac = audioContext;
+  if (ac.state === "running") {
+    sound(ac, ac.currentTime);
+    return;
+  }
+
+  const askedAt = performance.now();
+  ac.resume().then(
+    () => {
+      if (performance.now() - askedAt < STALE_RESUME_MS) sound(ac, ac.currentTime);
+    },
+    () => {},
+  );
 }
 
 function master(ac: AudioContext) {
@@ -96,38 +111,35 @@ function thump(ac: AudioContext, at: number, hz: number, gain: number) {
 const spinePitch = (index: number) => 900 + ((index * 137) % 9) * 110;
 
 export function bookPull(index: number) {
-  const ac = audio();
-  if (!ac) return;
-
-  const now = ac.currentTime;
-  brush(ac, now, spinePitch(index) * 0.8, 0.09, 0.14);
-  thump(ac, now + 0.03, 150 - (index % 4) * 10, 0.12);
+  play((ac, now) => {
+    brush(ac, now, spinePitch(index) * 0.8, 0.09, 0.14);
+    thump(ac, now + 0.03, 150 - (index % 4) * 10, 0.12);
+  });
 }
 
+const CHIME_NOTES = [
+  { hz: 523.25, offset: 0, gain: 0.05 },
+  { hz: 783.99, offset: 0.14, gain: 0.045 },
+];
+
 export function winChime() {
-  const ac = audio();
-  if (!ac) return;
+  play((ac, now) => {
+    for (const { hz, offset, gain } of CHIME_NOTES) {
+      const at = now + offset;
+      const osc = ac.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = hz;
 
-  const now = ac.currentTime;
-  const notes = [
-    [523.25, 0, 0.05],
-    [783.99, 0.14, 0.045],
-  ] as const;
+      const env = ac.createGain();
+      env.gain.setValueAtTime(0, at);
+      env.gain.linearRampToValueAtTime(gain, at + 0.015);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + 0.5);
 
-  for (const [hz, offset, gain] of notes) {
-    const osc = ac.createOscillator();
-    osc.type = "triangle";
-    osc.frequency.value = hz;
+      osc.connect(env).connect(master(ac));
+      osc.start(at);
+      osc.stop(at + 0.55);
+    }
 
-    const env = ac.createGain();
-    env.gain.setValueAtTime(0, now + offset);
-    env.gain.linearRampToValueAtTime(gain, now + offset + 0.015);
-    env.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.5);
-
-    osc.connect(env).connect(master(ac));
-    osc.start(now + offset);
-    osc.stop(now + offset + 0.55);
-  }
-
-  brush(ac, now + 0.02, 1400, 0.03, 0.12);
+    brush(ac, now + 0.02, 1400, 0.03, 0.12);
+  });
 }
