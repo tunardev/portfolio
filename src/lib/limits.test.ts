@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import {
   DEDUPE_WINDOW_MS,
+  MAX_TRACKED_KEYS,
   RATE_LIMIT_MAX,
   RATE_LIMIT_WINDOW_MS,
   allowRequest,
   claimSubmission,
+  releaseSubmission,
   resetLimits,
   retryAfterSeconds,
 } from "./limits";
@@ -95,6 +97,47 @@ describe("claimSubmission", () => {
     claimSubmission("game-1", START);
     claimSubmission("game-1", START + DEDUPE_WINDOW_MS - 1);
     expect(claimSubmission("game-1", START + DEDUPE_WINDOW_MS)).toBe(true);
+  });
+
+  test("a released claim can be made again inside the window", () => {
+    claimSubmission("game-1", START);
+    releaseSubmission("game-1");
+    expect(claimSubmission("game-1", START + 1)).toBe(true);
+  });
+
+  test("releasing one fingerprint leaves the others claimed", () => {
+    claimSubmission("game-1", START);
+    claimSubmission("game-2", START);
+    releaseSubmission("game-1");
+    expect(claimSubmission("game-2", START + 1)).toBe(false);
+  });
+});
+
+describe("tracked keys are bounded", () => {
+  test("a limited client stays limited while the tracked set has room", () => {
+    for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
+    for (let i = 0; i < MAX_TRACKED_KEYS - 2; i++) allowRequest(`client-${i}`, START + 1);
+    expect(allowRequest("a", START + 1)).toBe(false);
+  });
+
+  test("the oldest client is evicted once the tracked set is full", () => {
+    for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
+    for (let i = 0; i < MAX_TRACKED_KEYS; i++) allowRequest(`client-${i}`, START + 1);
+    expect(allowRequest("a", START + 1)).toBe(true);
+  });
+
+  test("a client whose window restarted is no longer the oldest", () => {
+    allowRequest("a", START);
+    allowRequest("b", START + 1);
+    for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START + RATE_LIMIT_WINDOW_MS);
+    for (let i = 0; i < MAX_TRACKED_KEYS - 2; i++) allowRequest(`client-${i}`, START + RATE_LIMIT_WINDOW_MS);
+    expect(allowRequest("a", START + RATE_LIMIT_WINDOW_MS)).toBe(false);
+  });
+
+  test("the oldest submission is evicted once the tracked set is full", () => {
+    claimSubmission("game-1", START);
+    for (let i = 0; i < MAX_TRACKED_KEYS; i++) claimSubmission(`other-${i}`, START + 1);
+    expect(claimSubmission("game-1", START + 1)).toBe(true);
   });
 });
 

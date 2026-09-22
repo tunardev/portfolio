@@ -3,30 +3,30 @@ import {
   COLS,
   EMPTY,
   FIRST,
+  SECOND,
   SLOTS,
   drop,
   emptyBoard,
   hasRoom,
+  isFull,
   opponent,
   winner,
+  type Cell,
   type Player,
 } from "@/components/game/engine";
 import { getStats, recordGame, type Game, type Outcome } from "@/lib/games-store";
-import { allowRequest, claimSubmission, retryAfterSeconds } from "@/lib/limits";
+import { allowRequest, claimSubmission, releaseSubmission, retryAfterSeconds } from "@/lib/limits";
 
 export const dynamic = "force-dynamic";
 
-const OUTCOMES: readonly string[] = ["human", "model", "draw"];
 const MAX_MODEL_VERSION_LENGTH = 40;
 const UNKNOWN_CLIENT = "unknown";
+
+type Submission = Omit<Game, "created_at">;
 
 function clientOf(req: Request) {
   const forwarded = req.headers.get("x-forwarded-for");
   return forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || UNKNOWN_CLIENT;
-}
-
-function fingerprintOf(client: string, game: Omit<Game, "created_at">) {
-  return `${client}|${game.result}|${game.moves.join(",")}`;
 }
 
 function serverError(action: string, error: unknown) {
@@ -43,29 +43,36 @@ function isColumnList(value: unknown): value is number[] {
   );
 }
 
-function isPlayable(moves: number[]) {
+// the human always moves first against the model, so FIRST winning is a human win
+function outcomeOf(moves: number[]): Outcome | null {
   const board = emptyBoard();
   let player: Player = FIRST;
+  let won: Cell = EMPTY;
 
   for (const col of moves) {
-    if (!hasRoom(board, col) || winner(board) !== EMPTY) return false;
+    if (won !== EMPTY || !hasRoom(board, col)) return null;
     drop(board, col, player);
+    won = winner(board);
     player = opponent(player);
   }
 
-  return true;
+  if (won === FIRST) return "human";
+  if (won === SECOND) return "model";
+  return isFull(board) ? "draw" : null;
 }
 
-function parseGame(body: unknown): Omit<Game, "created_at"> | null {
+function parseGame(body: unknown): Submission | null {
   if (!body || typeof body !== "object") return null;
 
   const { moves, result, modelVersion } = body as Record<string, unknown>;
-  if (!isColumnList(moves) || !isPlayable(moves)) return null;
-  if (typeof result !== "string" || !OUTCOMES.includes(result)) return null;
+  if (!isColumnList(moves)) return null;
+
+  const outcome = outcomeOf(moves);
+  if (!outcome || result !== outcome) return null;
 
   return {
     moves,
-    result: result as Outcome,
+    result: outcome,
     model_version: typeof modelVersion === "string" ? modelVersion.slice(0, MAX_MODEL_VERSION_LENGTH) : null,
   };
 }
@@ -90,13 +97,21 @@ export async function POST(req: Request) {
   const game = parseGame(await req.json().catch(() => null));
   if (!game) return NextResponse.json({ error: "bad game" }, { status: 400 });
 
-  if (!claimSubmission(fingerprintOf(client, game))) {
+  const fingerprint = `${client}|${game.moves.join(",")}`;
+  if (!claimSubmission(fingerprint)) {
     return NextResponse.json({ error: "already recorded" }, { status: 409 });
   }
 
   try {
-    return NextResponse.json(await recordGame(game));
+    await recordGame(game);
   } catch (error) {
+    releaseSubmission(fingerprint);
     return serverError("record game", error);
+  }
+
+  try {
+    return NextResponse.json(await getStats());
+  } catch (error) {
+    return serverError("read stats", error);
   }
 }

@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import * as tf from "@tensorflow/tfjs";
 import {
@@ -22,26 +22,7 @@ import {
   type Player,
 } from "../src/components/game/engine";
 import { INPUTS, choose, encode, predict, type Layer, type Net } from "../src/components/game/net";
-import type { Outcome } from "../src/lib/games-store";
-
-const ENV_FILES = [".env.local", ".env"];
-const ENV_ASSIGNMENT = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/;
-const WRAPPING_QUOTES = /^["']|["']$/g;
-
-function loadEnvFiles() {
-  for (const file of ENV_FILES) {
-    if (!existsSync(file)) continue;
-    for (const line of readFileSync(file, "utf8").split("\n")) {
-      const assignment = line.match(ENV_ASSIGNMENT);
-      if (!assignment) continue;
-      const [, name, rawValue] = assignment;
-      if (process.env[name]) continue;
-      process.env[name] = rawValue.replace(WRAPPING_QUOTES, "");
-    }
-  }
-}
-
-loadEnvFiles();
+import { getAllGames, isStoreConfigured, recordModelVersion, type Outcome } from "../src/lib/games-store";
 
 const WEIGHTS_PATH = path.join("public", "model", "weights.json");
 const TEACHER_GAMES = Number(process.env.TRAIN_GAMES ?? 2000);
@@ -196,11 +177,10 @@ function visitorSamples(games: StoredGame[]): Sample[] {
 }
 
 async function fetchStoredGames(): Promise<StoredGame[]> {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!isStoreConfigured()) {
     console.log("no Supabase credentials, training on generated games only");
     return [];
   }
-  const { getAllGames } = await import("../src/lib/games-store");
   return getAllGames();
 }
 
@@ -346,17 +326,16 @@ async function main() {
     `empty board priors ${sanity.priors.map((prior) => prior.toFixed(2)).join(" ")} value ${sanity.value.toFixed(2)}`,
   );
   const match = versusEngine(net, EVAL_GAMES, EVAL_DEPTH);
-  console.log(`versus depth-4 search: ${match.wins} wins, ${match.draws} draws, ${match.losses} losses`);
+  console.log(`versus depth-${EVAL_DEPTH} search: ${match.wins} wins, ${match.draws} draws, ${match.losses} losses`);
 
   writeNet(net, started);
 
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const { recordModelVersion } = await import("../src/lib/games-store");
+  if (isStoreConfigured()) {
     await recordModelVersion({
       version: net.version,
       games_used: stored.length,
       positions: samples.length,
-      notes: `vs depth-4 search: ${match.wins}W ${match.draws}D ${match.losses}L`,
+      notes: `vs depth-${EVAL_DEPTH} search: ${match.wins}W ${match.draws}D ${match.losses}L`,
     });
   }
 }

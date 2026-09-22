@@ -24,14 +24,23 @@ const MIN_GAMES_FOR_FIRST_MONTH_RATE = 20;
 
 let serverClient: SupabaseClient | null = null;
 
+function credentials() {
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return url && key ? { url, key } : null;
+}
+
+export function isStoreConfigured() {
+  return credentials() !== null;
+}
+
 function db(): SupabaseClient {
   if (serverClient) return serverClient;
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
+  const config = credentials();
+  if (!config) {
     throw new Error("SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY must be set");
   }
-  serverClient = createClient(url, key, { auth: { persistSession: false } });
+  serverClient = createClient(config.url, config.key, { auth: { persistSession: false } });
   return serverClient;
 }
 
@@ -101,10 +110,9 @@ export async function getStats(): Promise<Stats> {
   };
 }
 
-export async function recordGame(game: Omit<Game, "created_at">): Promise<Stats> {
+export async function recordGame(game: Omit<Game, "created_at">) {
   const { error } = await db().from("games").insert(game);
   if (error) throw new Error(error.message);
-  return getStats();
 }
 
 export async function getAllGames(): Promise<Game[]> {
@@ -116,6 +124,7 @@ export async function getAllGames(): Promise<Game[]> {
       .from("games")
       .select("moves,result,model_version,created_at")
       .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
       .range(from, from + PAGE_SIZE - 1);
     if (error) throw new Error(error.message);
 
