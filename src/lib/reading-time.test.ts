@@ -71,6 +71,24 @@ describe("readingTime", () => {
     expect(readingTime("alpha <br /> beta").words).toBe(2);
   });
 
+  test("tilde fences count as code, not prose", () => {
+    const markdown = ["hello world", "", "~~~", "const answer = compute(input);", "return answer;", "~~~"].join("\n");
+
+    expect(readingTime(markdown).words).toBe(2);
+  });
+
+  test("nested list and quote markers are not counted as words", () => {
+    const markdown = ["- outer", "    - inner", "        1) deepest", "", "> > nested quote"].join("\n");
+
+    expect(readingTime(markdown).words).toBe(5);
+  });
+
+  test("spaced dashes and table pipes are not counted as words", () => {
+    const markdown = ["one — two", "", "| a | b |", "| --- | --- |", "| c | d |"].join("\n");
+
+    expect(readingTime(markdown).words).toBe(6);
+  });
+
   test("three hundred and twenty nine words rounds down to one minute", () => {
     expect(readingTime(words(329))).toEqual({ words: 329, minutes: 1 });
   });

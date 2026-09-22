@@ -15,6 +15,9 @@ type Params = { params: Promise<{ slug: string }> };
 
 const PLATE_DOT = 3;
 
+// every post is known at build time; an unknown slug should 404 without a runtime render that reads content/blog
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   return (await getPosts()).map((post) => ({ slug: post.slug }));
 }
@@ -22,7 +25,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) return { title: "Nothing here" };
+  if (!post) notFound();
 
   return {
     title: post.title,

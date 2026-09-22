@@ -3,13 +3,14 @@ const CODE_LINES_PER_MINUTE = 20;
 const SECONDS_PER_FIGURE = 12;
 const SECONDS_PER_MINUTE = 60;
 
-const FENCED_CODE = /```[\s\S]*?```/g;
+const FENCED_CODE = /(```|~~~)[\s\S]*?\1/g;
 const IMAGE = /!\[[^\]]*\]\([^)]*\)/g;
 const LINK = /\[([^\]]*)\]\([^)]*\)/g;
 const HTML_TAG = /<[^>]+>/g;
 const THEMATIC_BREAK = /^[ \t]{0,3}(?:-{3,}|\*{3,}|_{3,})[ \t]*$/gm;
-const BLOCK_MARKER = /^[ \t]{0,3}(?:#{1,6}[ \t]+|>[ \t]?|[-*+][ \t]+|\d+\.[ \t]+)/gm;
+const BLOCK_MARKER = /^[ \t]*(?:>[ \t]?)*[ \t]*(?:#{1,6}[ \t]+|[-*+][ \t]+|\d+[.)][ \t]+)?/gm;
 const EMPHASIS = /[*_`~]/g;
+const HAS_WORD_CHARACTER = /[\p{L}\p{N}]/u;
 
 export type ReadingTime = { words: number; minutes: number };
 
@@ -35,7 +36,8 @@ export function readingTime(markdown: string): ReadingTime {
     .replace(/\s+/g, " ")
     .trim();
 
-  const words = prose ? prose.split(" ").length : 0;
+  // stray punctuation such as a spaced dash or a table pipe is not a word
+  const words = prose.split(" ").filter((token) => HAS_WORD_CHARACTER.test(token)).length;
 
   const seconds =
     (words / PROSE_WORDS_PER_MINUTE) * SECONDS_PER_MINUTE +

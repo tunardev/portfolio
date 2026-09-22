@@ -22,6 +22,8 @@
 }
 
 .row {
+  --slot: 28px;
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -37,8 +39,8 @@
 
 .slot {
   flex-shrink: 0;
-  inline-size: 28px;
-  block-size: 28px;
+  inline-size: var(--slot);
+  block-size: var(--slot);
 }
 
 .title {
@@ -90,14 +92,14 @@
 .excerpt {
   display: block;
   overflow: hidden;
-  padding-inline-start: 44px;
+  padding-inline-start: calc(var(--slot) + var(--space-lg));
   font-size: var(--text-small);
   line-height: var(--leading-small);
   color: var(--ink-soft);
   opacity: 0;
   transition:
     opacity 260ms ease,
-    padding-top var(--speed-calm) var(--ease-out);
+    padding-block-start var(--speed-calm) var(--ease-out);
 }
 
 .row:hover .excerpt,
@@ -136,7 +138,6 @@
 
 .meta {
   display: flex;
-  gap: 0;
   font-size: var(--text-small);
   line-height: var(--leading-small);
   font-variant-numeric: tabular-nums;
@@ -171,10 +172,6 @@
   font-family: var(--font-mono);
   font-size: var(--text-meta);
   background: var(--wash);
-}
-
-.body em {
-  font-style: italic;
 }
 
 .body h2 {
@@ -215,13 +212,11 @@
     align-items: flex-end;
     gap: 10px;
     inline-size: var(--margin-note);
-    padding-block-start: 10px;
     text-align: end;
   }
 
   .meta {
     flex-direction: column;
-    gap: 0;
   }
 
   .meta > * + *::before {
@@ -236,9 +231,8 @@
 
   .line {
     display: grid;
-    grid-template-columns: 28px 1fr;
+    grid-template-columns: var(--slot) 1fr;
     align-items: start;
-    column-gap: var(--space-lg);
     row-gap: 2px;
   }
 
