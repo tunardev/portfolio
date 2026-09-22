@@ -1,3 +1,9 @@
+.svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
 .rise {
   animation: rise 1400ms var(--ease-out) both;
   animation-delay: calc(var(--i) * 140ms);
