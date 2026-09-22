@@ -1,0 +1,54 @@
+name: Retrain model
+
+on:
+  schedule:
+    - cron: "0 4 1,15 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: retrain
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  retrain:
+    name: Retrain the four-in-a-row model
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Require Supabase secrets
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set as repository secrets"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run train
+
+      - name: Check the new weights
+        run: bun test src/components/game
+
+      - name: Commit the new weights
+        run: |
+          git add public/model/weights.json
+          if git diff --cached --quiet; then
+            echo "weights unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(game): retrain the model on visitor games"
+          git push
