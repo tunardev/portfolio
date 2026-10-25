@@ -36,8 +36,8 @@ export const metadata: Metadata = {
     "databases",
     "machine learning",
     "how big tech works",
-    "Gloree",
-    "agentic spreadsheet",
+    "Instract",
+    "enterprise software",
   ],
   alternates: { canonical: "/", types: { "application/rss+xml": "/feed.xml" } },
   openGraph: {

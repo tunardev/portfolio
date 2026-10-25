@@ -9,7 +9,7 @@ import { jsonLdScript } from "@/lib/jsonld";
 import {
   AUTHOR,
   EMAIL,
-  GLOREE_URL,
+  INSTRACT_URL,
   PERSON_ID,
   PROFILES,
   SITE_DESCRIPTION,
@@ -32,7 +32,7 @@ const structuredData = [
     description: SITE_DESCRIPTION,
     sameAs: PROFILES,
     knowsAbout: ["Distributed systems", "Databases", "Machine learning", "Data migration"],
-    worksFor: { "@type": "Organization", name: "Gloree", url: GLOREE_URL },
+    worksFor: { "@type": "Organization", name: "Instract", url: INSTRACT_URL },
   },
   {
     "@context": "https://schema.org",
@@ -63,10 +63,10 @@ export default function Home() {
 
         <p className="prose">
           Right now I&apos;m building{" "}
-          <a href="/gloree" target="_blank" rel="noreferrer" className="underline">
-            Gloree
+          <a href="/instract" target="_blank" rel="noreferrer" className="underline">
+            Instract
           </a>
-          , an agentic spreadsheet for enterprises.
+          , custom AI software for enterprises.
         </p>
 
         <Lore>

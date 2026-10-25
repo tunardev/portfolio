@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/x", destination: "https://x.com/tunardev", permanent: false },
       { source: "/twitter", destination: "https://x.com/tunardev", permanent: false },
-      { source: "/gloree", destination: "https://gloree.ai", permanent: false },
+      { source: "/instract", destination: "https://www.instractai.com", permanent: false },
       { source: "/github", destination: "https://github.com/tunardev", permanent: false },
       { source: "/instagram", destination: "https://instagram.com/tunar.tech", permanent: false },
       { source: "/linkedin", destination: "https://linkedin.com/in/tunardev", permanent: false },
