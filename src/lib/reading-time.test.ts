@@ -10,35 +10,35 @@ const images = (count: number) =>
   Array.from({ length: count }, (_, i) => `![diagram ${i}](/img-${i}.png)`).join("\n\n");
 
 describe("readingTime", () => {
-  test("an empty document has no words and still reports the one minute floor", () => {
+  test("returns 1 minute minimum for empty input", () => {
     expect(readingTime("")).toEqual({ words: 0, minutes: 1 });
   });
 
-  test("a two word document reports two words and one minute", () => {
+  test("returns 1 minute for two words", () => {
     expect(readingTime("hello world")).toEqual({ words: 2, minutes: 1 });
   });
 
-  test("two hundred and twenty words of prose is one minute", () => {
+  test("returns 1 minute for 220 words", () => {
     expect(readingTime(words(220))).toEqual({ words: 220, minutes: 1 });
   });
 
-  test("four hundred and forty words of prose is two minutes", () => {
+  test("returns 2 minutes for 440 words", () => {
     expect(readingTime(words(440))).toEqual({ words: 440, minutes: 2 });
   });
 
-  test("eleven hundred words of prose is five minutes", () => {
+  test("returns 5 minutes for 1100 words", () => {
     expect(readingTime(words(1100))).toEqual({ words: 1100, minutes: 5 });
   });
 
-  test("forty fenced code lines add two minutes on top of the prose", () => {
+  test("adds 2 minutes for 40 code lines", () => {
     expect(readingTime(`${words(440)}\n\n${fence(40)}`)).toEqual({ words: 440, minutes: 4 });
   });
 
-  test("five images add sixty seconds on top of the prose", () => {
+  test("adds 1 minute for 5 images", () => {
     expect(readingTime(`${words(440)}\n\n${images(5)}`)).toEqual({ words: 440, minutes: 3 });
   });
 
-  test("markdown syntax is stripped before words are counted", () => {
+  test("excludes markdown syntax from word count", () => {
     const markdown = [
       "# Heading one",
       "",
@@ -57,43 +57,43 @@ describe("readingTime", () => {
     expect(readingTime(markdown)).toEqual({ words: 16, minutes: 1 });
   });
 
-  test("a link contributes its text but not its url", () => {
+  test("counts link text but not url", () => {
     expect(readingTime("[link text](https://example.com)").words).toBe(2);
   });
 
-  test("fenced code content is not counted as words", () => {
+  test("excludes backtick fenced code from word count", () => {
     const markdown = ["hello world", "", "```ts", "const answer = compute(input);", "return answer;", "```"].join("\n");
 
     expect(readingTime(markdown).words).toBe(2);
   });
 
-  test("an html tag contributes no words", () => {
+  test("excludes HTML tags from word count", () => {
     expect(readingTime("alpha <br /> beta").words).toBe(2);
   });
 
-  test("tilde fences count as code, not prose", () => {
+  test("excludes tilde fenced code from word count", () => {
     const markdown = ["hello world", "", "~~~", "const answer = compute(input);", "return answer;", "~~~"].join("\n");
 
     expect(readingTime(markdown).words).toBe(2);
   });
 
-  test("nested list and quote markers are not counted as words", () => {
+  test("excludes nested list and quote markers", () => {
     const markdown = ["- outer", "    - inner", "        1) deepest", "", "> > nested quote"].join("\n");
 
     expect(readingTime(markdown).words).toBe(5);
   });
 
-  test("spaced dashes and table pipes are not counted as words", () => {
+  test("excludes dashes and table pipes", () => {
     const markdown = ["one — two", "", "| a | b |", "| --- | --- |", "| c | d |"].join("\n");
 
     expect(readingTime(markdown).words).toBe(6);
   });
 
-  test("three hundred and twenty nine words rounds down to one minute", () => {
+  test("rounds 329 words down to 1 minute", () => {
     expect(readingTime(words(329))).toEqual({ words: 329, minutes: 1 });
   });
 
-  test("three hundred and thirty one words rounds up to two minutes", () => {
+  test("rounds 331 words up to 2 minutes", () => {
     expect(readingTime(words(331))).toEqual({ words: 331, minutes: 2 });
   });
 });

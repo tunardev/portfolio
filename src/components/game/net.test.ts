@@ -29,17 +29,17 @@ function sum(values: number[]): number {
 }
 
 describe("encode", () => {
-  test("produces one number per slot per plane", () => {
+  test("returns one value per slot per plane", () => {
     expect(INPUTS).toBe(2 * SLOTS);
     expect(encode(emptyBoard(), FIRST)).toHaveLength(INPUTS);
   });
 
-  test("is all zeros for an empty board", () => {
+  test("returns zeros for empty board", () => {
     const planes = encode(emptyBoard(), FIRST);
     expect(Array.from(planes).every((value) => value === 0)).toBe(true);
   });
 
-  test("puts the side to move in the first plane and the opponent in the second", () => {
+  test("encodes current player in first plane", () => {
     const board = emptyBoard();
     drop(board, 0, FIRST);
     drop(board, 1, SECOND);
@@ -52,7 +52,7 @@ describe("encode", () => {
     expect(sum(Array.from(planes))).toBe(2);
   });
 
-  test("swaps the two planes when the other player is to move", () => {
+  test("swaps planes for other player", () => {
     const board = emptyBoard();
     drop(board, 0, FIRST);
     drop(board, 1, SECOND);
@@ -67,7 +67,7 @@ describe("encode", () => {
 });
 
 describe("predict", () => {
-  test("returns priors that sum to one on an empty board", () => {
+  test("returns normalized priors on empty board", () => {
     const { priors } = predict(fakeNet(), emptyBoard(), FIRST);
 
     expect(priors).toHaveLength(COLS);
@@ -76,7 +76,7 @@ describe("predict", () => {
     expect(priors[0]).toBeCloseTo(1 / (6 + Math.E), 10);
   });
 
-  test("gives a full column a prior of exactly zero and spreads the rest over the legal moves", () => {
+  test("assigns zero prior to full column", () => {
     const { priors } = predict(fakeNet(), boardWithFullColumn(3), FIRST);
 
     expect(priors[3]).toBe(0);
@@ -84,7 +84,7 @@ describe("predict", () => {
     for (const col of [0, 1, 2, 4, 5, 6]) expect(priors[col]).toBeCloseTo(1 / 6, 10);
   });
 
-  test("returns a value inside minus one and one", () => {
+  test("returns value within [-1, 1]", () => {
     const board = emptyBoard();
     drop(board, 0, FIRST);
 
@@ -99,7 +99,7 @@ describe("predict", () => {
     }
   });
 
-  test("reads the value head through the hidden layer", () => {
+  test("computes value through hidden layer", () => {
     const board = emptyBoard();
     drop(board, 0, FIRST);
 
@@ -110,41 +110,41 @@ describe("predict", () => {
 });
 
 describe("isNet", () => {
-  test("accepts weights whose layers chain from the input planes to both heads", () => {
+  test("accepts valid network", () => {
     expect(isNet(fakeNet())).toBe(true);
   });
 
-  test("accepts the shipped weights", async () => {
+  test("accepts shipped weights", async () => {
     const shipped: unknown = await Bun.file(`${import.meta.dir}/../../../public/model/weights.json`).json();
     expect(isNet(shipped)).toBe(true);
   });
 
-  test("rejects anything that is not an object with weights", () => {
+  test("rejects non-network values", () => {
     expect(isNet(null)).toBe(false);
     expect(isNet("weights")).toBe(false);
     expect(isNet({ ...fakeNet(), hidden: undefined })).toBe(false);
     expect(isNet({ ...fakeNet(), version: 3 })).toBe(false);
   });
 
-  test("rejects a hidden layer sized for a different input", () => {
+  test("rejects mismatched hidden layer size", () => {
     const net = fakeNet();
     net.hidden[0].w = net.hidden[0].w.slice(1);
     expect(isNet(net)).toBe(false);
   });
 
-  test("rejects a policy head that does not score every column", () => {
+  test("rejects policy head with missing columns", () => {
     const net = fakeNet();
     net.policy = { w: Array<number>((COLS - 1) * 2).fill(0), b: Array<number>(COLS - 1).fill(0) };
     expect(isNet(net)).toBe(false);
   });
 
-  test("rejects a value head with more than one output", () => {
+  test("rejects multi-output value head", () => {
     const net = fakeNet();
     net.value = { w: [0, 1, 0, 1], b: [0, 0] };
     expect(isNet(net)).toBe(false);
   });
 
-  test("rejects weights that are not finite numbers", () => {
+  test("rejects non-finite weights", () => {
     const net = fakeNet();
     (net.policy.b as unknown[])[2] = null;
     expect(isNet(net)).toBe(false);
@@ -152,7 +152,7 @@ describe("isNet", () => {
 });
 
 describe("choose", () => {
-  test("picks a legal column and leaves the board it was given untouched", () => {
+  test("returns legal move without mutating board", () => {
     const board = boardWithFullColumn(3);
     const before = board.map((row) => [...row]);
     const choice = choose(fakeNet(), board, FIRST, 3);
@@ -162,7 +162,7 @@ describe("choose", () => {
     expect(board).toEqual(before);
   });
 
-  test("takes an immediate win", () => {
+  test("plays immediate win", () => {
     const board = emptyBoard();
     for (const col of [0, 1, 2]) drop(board, col, SECOND);
     for (const col of [0, 1, 2]) drop(board, col, FIRST);

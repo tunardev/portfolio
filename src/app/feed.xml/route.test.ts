@@ -29,38 +29,38 @@ beforeAll(async () => {
   );
 });
 
-describe("the feed response", () => {
-  test("it is served as rss xml", () => {
+describe("GET /feed.xml response", () => {
+  test("returns RSS content type", () => {
     expect(contentType).toBe("application/rss+xml; charset=utf-8");
   });
 
-  test("it starts with the xml declaration", () => {
+  test("starts with XML declaration", () => {
     expect(body.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
   });
 
-  test("it holds exactly one channel", () => {
+  test("contains exactly one channel", () => {
     expect(occurrences(body, "<channel>")).toBe(1);
     expect(occurrences(body, "</channel>")).toBe(1);
   });
 });
 
-describe("the feed items", () => {
-  test("there is at least one post to publish", () => {
+describe("GET /feed.xml items", () => {
+  test("requires at least one post", () => {
     expect(markdownFiles.length).toBeGreaterThan(0);
   });
 
-  test("there is one item per markdown file in the blog directory", () => {
+  test("emits one item per markdown file", () => {
     expect(occurrences(body, "<item>")).toBe(markdownFiles.length);
     expect(occurrences(body, "</item>")).toBe(markdownFiles.length);
   });
 
-  test("every item links to its own slug", () => {
+  test("links each item to its slug", () => {
     for (const file of markdownFiles) {
       expect(body).toContain(`<link>${SITE_URL}/blog/${file.replace(/\.md$/, "")}</link>`);
     }
   });
 
-  test("every pubDate parses to a valid date", () => {
+  test("emits valid pubDate values", () => {
     const dates = [...body.matchAll(/<pubDate>(.*?)<\/pubDate>/g)].map((match) => match[1]);
     expect(dates).toHaveLength(markdownFiles.length);
     for (const date of dates) {
@@ -68,50 +68,50 @@ describe("the feed items", () => {
     }
   });
 
-  test("the self link points at the feed url", () => {
+  test("includes self link to feed url", () => {
     expect(body).toContain(`<atom:link href="${SITE_URL}/feed.xml" rel="self" type="application/rss+xml" />`);
   });
 });
 
-describe("the feed escapes markup", () => {
-  test("no bare ampersand survives outside cdata", () => {
+describe("GET /feed.xml escaping", () => {
+  test("contains no bare ampersand outside CDATA", () => {
     expect(outsideCdata(body)).not.toContain(" & ");
   });
 
-  test("every ampersand outside cdata opens an entity", () => {
+  test("escapes ampersands outside CDATA as entities", () => {
     for (const match of outsideCdata(body).matchAll(/&(.{0,10})/g)) {
       expect(match[1]).toMatch(/^(amp|lt|gt|quot|apos|#\d+);/);
     }
   });
 
-  test("cdata openers and closers are balanced across the whole feed", () => {
+  test("balances CDATA delimiters", () => {
     expect(occurrences(body, "<![CDATA[")).toBe(occurrences(body, "]]>"));
   });
 });
 
-describe("cdata cannot be broken out of", () => {
-  test("a terminator in the payload is split across two sections", () => {
+describe("cdata", () => {
+  test("splits terminator across two sections", () => {
     expect(cdata("a]]>b")).toBe("<![CDATA[a]]]]><![CDATA[>b]]>");
   });
 
-  test("the split payload still decodes back to the original text", () => {
+  test("preserves payload across split sections", () => {
     const payload = "before]]><script>alert(1)</script>after";
     const sections = [...cdata(payload).matchAll(CDATA_SECTION)].map((match) => match[1]);
     expect(sections).toHaveLength(2);
     expect(sections.join("")).toBe(payload);
   });
 
-  test("an escaped payload keeps its openers and closers balanced", () => {
+  test("balances delimiters for repeated terminators", () => {
     const escaped = cdata("]]>]]>]]>");
     expect(occurrences(escaped, "<![CDATA[")).toBe(4);
     expect(occurrences(escaped, "<![CDATA[")).toBe(occurrences(escaped, "]]>"));
   });
 
-  test("a payload without a terminator is wrapped untouched", () => {
+  test("wraps payload without terminator unchanged", () => {
     expect(cdata("<p>plain</p>")).toBe("<![CDATA[<p>plain</p>]]>");
   });
 
-  test("an empty payload is still a well-formed section", () => {
+  test("wraps empty payload", () => {
     expect(cdata("")).toBe("<![CDATA[]]>");
   });
 });
@@ -133,13 +133,13 @@ function post(overrides: Partial<Post>): Post {
 }
 
 describe("renderFeed", () => {
-  test("markup in a title or excerpt is escaped", () => {
+  test("escapes markup in title and excerpt", () => {
     const xml = renderFeed([post({ title: "Tom & <Jerry>", excerpt: 'a "quoted" <b>word</b>' })]);
     expect(xml).toContain("<title>Tom &amp; &lt;Jerry&gt;</title>");
     expect(xml).toContain("<description>a &quot;quoted&quot; &lt;b&gt;word&lt;/b&gt;</description>");
   });
 
-  test("the build date follows the latest edit even on an older post", () => {
+  test("sets lastBuildDate from latest update", () => {
     const xml = renderFeed([
       post({ slug: "newest", date: "2025-03-01" }),
       post({ slug: "older", date: "2025-01-01", updated: "2025-06-01" }),
@@ -147,7 +147,7 @@ describe("renderFeed", () => {
     expect(xml).toContain(`<lastBuildDate>${new Date("2025-06-01T00:00:00Z").toUTCString()}</lastBuildDate>`);
   });
 
-  test("an empty blog still renders a channel with a valid build date", () => {
+  test("renders valid lastBuildDate for empty post list", () => {
     const xml = renderFeed([]);
     expect(occurrences(xml, "<item>")).toBe(0);
     const [, date] = xml.match(/<lastBuildDate>(.*?)<\/lastBuildDate>/) ?? [];

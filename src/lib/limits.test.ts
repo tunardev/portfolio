@@ -18,54 +18,54 @@ beforeEach(() => {
 });
 
 describe("allowRequest", () => {
-  test("allows exactly the limit inside one window", () => {
+  test("allows requests up to limit per window", () => {
     for (let i = 0; i < RATE_LIMIT_MAX; i++) {
       expect(allowRequest("a", START)).toBe(true);
     }
     expect(allowRequest("a", START)).toBe(false);
   });
 
-  test("keeps refusing once the limit is passed", () => {
+  test("rejects requests after limit exceeded", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     expect(allowRequest("a", START)).toBe(false);
     expect(allowRequest("a", START)).toBe(false);
   });
 
-  test("still refuses just before the window closes", () => {
+  test("rejects until window ends", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     expect(allowRequest("a", START + RATE_LIMIT_WINDOW_MS - 1)).toBe(false);
   });
 
-  test("allows again once the window has passed", () => {
+  test("allows requests after window resets", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     expect(allowRequest("a", START + RATE_LIMIT_WINDOW_MS)).toBe(true);
   });
 
-  test("counts each client separately", () => {
+  test("tracks clients independently", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     expect(allowRequest("a", START)).toBe(false);
     expect(allowRequest("b", START)).toBe(true);
   });
 
-  test("an unseen client starts fresh", () => {
+  test("allows new client", () => {
     expect(allowRequest("brand-new", START)).toBe(true);
   });
 });
 
 describe("retryAfterSeconds", () => {
-  test("is at least one second for a client mid-window", () => {
+  test("returns at least 1 mid-window", () => {
     allowRequest("a", START);
     expect(retryAfterSeconds("a", START)).toBeGreaterThanOrEqual(1);
   });
 
-  test("counts down as the window elapses", () => {
+  test("decreases as window elapses", () => {
     allowRequest("a", START);
     const early = retryAfterSeconds("a", START);
     const later = retryAfterSeconds("a", START + RATE_LIMIT_WINDOW_MS / 2);
     expect(later).toBeLessThan(early);
   });
 
-  test("never returns zero or a negative value", () => {
+  test("never returns less than 1", () => {
     allowRequest("a", START);
     expect(retryAfterSeconds("a", START + RATE_LIMIT_WINDOW_MS * 2)).toBeGreaterThanOrEqual(1);
     expect(retryAfterSeconds("never-seen", START)).toBeGreaterThanOrEqual(1);
@@ -73,39 +73,39 @@ describe("retryAfterSeconds", () => {
 });
 
 describe("claimSubmission", () => {
-  test("the first claim succeeds and an immediate repeat does not", () => {
+  test("rejects immediate duplicate", () => {
     expect(claimSubmission("game-1", START)).toBe(true);
     expect(claimSubmission("game-1", START)).toBe(false);
   });
 
-  test("still refuses just before the dedupe window closes", () => {
+  test("rejects duplicate until window ends", () => {
     claimSubmission("game-1", START);
     expect(claimSubmission("game-1", START + DEDUPE_WINDOW_MS - 1)).toBe(false);
   });
 
-  test("allows the same fingerprint once the window has passed", () => {
+  test("accepts duplicate after window", () => {
     claimSubmission("game-1", START);
     expect(claimSubmission("game-1", START + DEDUPE_WINDOW_MS)).toBe(true);
   });
 
-  test("different fingerprints never collide", () => {
+  test("accepts distinct fingerprints", () => {
     expect(claimSubmission("game-1", START)).toBe(true);
     expect(claimSubmission("game-2", START)).toBe(true);
   });
 
-  test("a refused claim does not extend the window", () => {
+  test("does not extend window on rejection", () => {
     claimSubmission("game-1", START);
     claimSubmission("game-1", START + DEDUPE_WINDOW_MS - 1);
     expect(claimSubmission("game-1", START + DEDUPE_WINDOW_MS)).toBe(true);
   });
 
-  test("a released claim can be made again inside the window", () => {
+  test("accepts released fingerprint within window", () => {
     claimSubmission("game-1", START);
     releaseSubmission("game-1");
     expect(claimSubmission("game-1", START + 1)).toBe(true);
   });
 
-  test("releasing one fingerprint leaves the others claimed", () => {
+  test("releases only specified fingerprint", () => {
     claimSubmission("game-1", START);
     claimSubmission("game-2", START);
     releaseSubmission("game-1");
@@ -113,20 +113,20 @@ describe("claimSubmission", () => {
   });
 });
 
-describe("tracked keys are bounded", () => {
-  test("a limited client stays limited while the tracked set has room", () => {
+describe("tracked key eviction", () => {
+  test("retains limited client below capacity", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     for (let i = 0; i < MAX_TRACKED_KEYS - 2; i++) allowRequest(`client-${i}`, START + 1);
     expect(allowRequest("a", START + 1)).toBe(false);
   });
 
-  test("the oldest client is evicted once the tracked set is full", () => {
+  test("evicts oldest client at capacity", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     for (let i = 0; i < MAX_TRACKED_KEYS; i++) allowRequest(`client-${i}`, START + 1);
     expect(allowRequest("a", START + 1)).toBe(true);
   });
 
-  test("a client whose window restarted is no longer the oldest", () => {
+  test("treats restarted window as newest", () => {
     allowRequest("a", START);
     allowRequest("b", START + 1);
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START + RATE_LIMIT_WINDOW_MS);
@@ -134,7 +134,7 @@ describe("tracked keys are bounded", () => {
     expect(allowRequest("a", START + RATE_LIMIT_WINDOW_MS)).toBe(false);
   });
 
-  test("the oldest submission is evicted once the tracked set is full", () => {
+  test("evicts oldest submission at capacity", () => {
     claimSubmission("game-1", START);
     for (let i = 0; i < MAX_TRACKED_KEYS; i++) claimSubmission(`other-${i}`, START + 1);
     expect(claimSubmission("game-1", START + 1)).toBe(true);
@@ -142,7 +142,7 @@ describe("tracked keys are bounded", () => {
 });
 
 describe("resetLimits", () => {
-  test("clears both the rate window and the dedupe record", () => {
+  test("clears rate limits and submissions", () => {
     for (let i = 0; i <= RATE_LIMIT_MAX; i++) allowRequest("a", START);
     claimSubmission("game-1", START);
 

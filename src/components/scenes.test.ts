@@ -17,14 +17,14 @@ const CARD = { width: 1200, height: 630 };
 const PORTRAIT = { width: 480, height: 720 };
 
 describe("pickScene", () => {
-  test("is deterministic for a seed and size", () => {
+  test("returns same scene for same seed", () => {
     const once = pickScene("hello-world", CARD);
     const again = pickScene("hello-world", CARD);
 
     expect(again).toEqual(once);
   });
 
-  test("gives different seeds different scenes", () => {
+  test("returns different scenes for different seeds", () => {
     const first = pickScene("hello-world", CARD);
     const second = pickScene("second-seed", CARD);
 
@@ -32,12 +32,12 @@ describe("pickScene", () => {
     expect(second).not.toEqual(first);
   });
 
-  test("keeps the size it was handed", () => {
+  test("preserves given size", () => {
     expect(pickScene("post-one", CARD)).toMatchObject(CARD);
     expect(pickScene("post-one", PORTRAIT)).toMatchObject({ width: 480, height: 720 });
   });
 
-  test("always lands on a known tint and a known kind", () => {
+  test("returns known tint and kind", () => {
     const tints = Object.keys(TINTS);
 
     for (let i = 0; i < 200; i++) {
@@ -48,13 +48,13 @@ describe("pickScene", () => {
     }
   });
 
-  test("stays inside a restricted kind list", () => {
+  test("respects restricted kinds", () => {
     for (let i = 0; i < 200; i++) {
       expect(PORTRAIT_KINDS).toContain(pickScene(`portrait-${i}`, PORTRAIT, PORTRAIT_KINDS).kind);
     }
   });
 
-  test("a sun is either absent or a real disc inside the scene", () => {
+  test("places optional sun within bounds", () => {
     let suns = 0;
 
     for (let i = 0; i < 200; i++) {
@@ -79,7 +79,7 @@ describe("pickScene", () => {
 });
 
 describe("sceneShapes", () => {
-  test("draws every kind as paintable shapes", () => {
+  test("returns paintable shapes for every kind", () => {
     const base = pickScene("shapes", CARD);
 
     for (const kind of KINDS) {
@@ -93,13 +93,13 @@ describe("sceneShapes", () => {
     }
   });
 
-  test("draws the same shapes for the same spec", () => {
+  test("returns same shapes for same scene", () => {
     const spec = pickScene("stable", CARD);
 
     expect(sceneShapes(spec)).toEqual(sceneShapes(spec));
   });
 
-  test("strokes carry a colour and a width, fills do not", () => {
+  test("sets color and width on strokes", () => {
     const shapes = sceneShapes({ ...pickScene("stroked", CARD), kind: "histogram" });
     const strokes = shapes.filter((shape) => shape.fill === "none");
 
@@ -111,7 +111,7 @@ describe("sceneShapes", () => {
   });
 });
 
-describe("sun", () => {
+describe("sceneShapes sun", () => {
   const withSun = (kind: (typeof KINDS)[number]) => {
     for (let i = 0; ; i++) {
       const spec = { ...pickScene(`sunlit-${i}`, CARD), kind };
@@ -119,7 +119,7 @@ describe("sun", () => {
     }
   };
 
-  test("flags at most one shape per scene as the sun", () => {
+  test("flags at most one sun shape", () => {
     for (const kind of KINDS) {
       const flagged = sceneShapes(withSun(kind)).filter((shape) => shape.sun);
 
@@ -127,22 +127,22 @@ describe("sun", () => {
     }
   });
 
-  test("a mid band's foot shares the sun's grey without being flagged", () => {
+  test("does not flag shapes sharing sun fill", () => {
     const shapes = sceneShapes(withSun("sine"));
     const sunGrey = shapes.find((shape) => shape.sun)?.fill;
 
     expect(shapes.some((shape) => shape.fill === sunGrey && !shape.sun)).toBe(true);
   });
 
-  test("no sun, no flag", () => {
+  test("flags no shape without sun", () => {
     const spec = { ...pickScene("sunless", CARD), kind: "bells" as const, sun: null };
 
     expect(sceneShapes(spec).some((shape) => shape.sun)).toBe(false);
   });
 });
 
-describe("paint", () => {
-  test("maps white to paper, near-black to ink and red to red", () => {
+describe("paintOf, patternFills, strokeOf", () => {
+  test("maps fills to paint types", () => {
     expect(paintOf("none", false)).toBe("none");
     expect(paintOf(RED, false)).toBe("red");
     expect(paintOf("#FFFFFF", false)).toBe("paper");
@@ -151,7 +151,7 @@ describe("paint", () => {
     expect(paintOf("#7E7E7E", false)).toBe("pattern");
   });
 
-  test("patterns cover each dithered fill once and nothing else", () => {
+  test("returns each dithered fill once", () => {
     const shapes = sceneShapes({ ...pickScene("patterns", CARD), kind: "desk" });
     const fills = patternFills(shapes, false);
 
@@ -162,7 +162,7 @@ describe("paint", () => {
     }
   });
 
-  test("strokes fall back to a default alpha and width", () => {
+  test("applies default stroke alpha and width", () => {
     expect(strokeOf({ fill: "#FFFFFF", d: "M0 0" })).toBeNull();
     expect(strokeOf({ fill: "none", d: "M0 0", stroke: "#1A1917", width: 3 })).toEqual({ alpha: 1, width: 3 });
     expect(strokeOf({ fill: "none", d: "M0 0", stroke: "#123456" })).toEqual({ alpha: 0.6, width: 2 });
@@ -172,26 +172,26 @@ describe("paint", () => {
 describe("ditherCells", () => {
   const cellKeys = (fill: string, dark: boolean) => ditherCells(fill, dark).map(([col, row]) => `${col},${row}`);
 
-  test("lights as many cells of the tile as the grey is dark", () => {
+  test("scales cell count with darkness", () => {
     expect(cellKeys("#FFFFFF", false)).toHaveLength(0);
     expect(cellKeys("#B9B9B9", false)).toHaveLength(4);
     expect(cellKeys("#7E7E7E", false)).toHaveLength(8);
     expect(cellKeys("#1A1917", false)).toHaveLength(BAYER_SIDE * BAYER_SIDE);
   });
 
-  test("halves partial greys in dark mode", () => {
+  test("halves partial grays in dark mode", () => {
     expect(cellKeys("#7E7E7E", true)).toHaveLength(4);
     expect(cellKeys("#F2F2F2", true)).toHaveLength(1);
   });
 
-  test("is ordered, so a darker grey keeps every cell of a lighter one", () => {
+  test("includes lighter gray cells in darker gray", () => {
     const lighter = cellKeys("#B9B9B9", false);
     const darker = new Set(cellKeys("#7E7E7E", false));
 
     for (const cell of lighter) expect(darker.has(cell)).toBe(true);
   });
 
-  test("stays inside the tile", () => {
+  test("returns cells within tile", () => {
     for (const [col, row] of ditherCells("#3A3A3A", false)) {
       expect(col).toBeGreaterThanOrEqual(0);
       expect(col).toBeLessThan(BAYER_SIDE);

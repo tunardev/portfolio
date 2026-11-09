@@ -16,8 +16,8 @@ const standing = (over: Partial<Standing> = {}): Standing => ({
   ...over,
 });
 
-describe("waiting for a friend", () => {
-  test("asks you to send the link", () => {
+describe("friendCopy while waiting", () => {
+  test("returns invite title and presence", () => {
     const copy = friendCopy(standing({ waiting: true }));
 
     expect(copy.title).toBe("Send this link. The board starts the moment they open it.");
@@ -25,7 +25,7 @@ describe("waiting for a friend", () => {
     expect(copy.kicker).toBe("Four in a row with a friend");
   });
 
-  test("names your colour and whether you move first or second", () => {
+  test("describes color and move order", () => {
     expect(friendCopy(standing({ waiting: true, myColor: FIRST })).lede).toBe(
       "You play ink and move first. Your friend plays red.",
     );
@@ -35,47 +35,47 @@ describe("waiting for a friend", () => {
   });
 });
 
-describe("iWon", () => {
-  test("is true only when the game is over and the result is your colour", () => {
+describe("friendCopy iWon", () => {
+  test("returns true when own color wins", () => {
     expect(friendCopy(standing({ over: true, result: FIRST, myColor: FIRST })).iWon).toBe(true);
     expect(friendCopy(standing({ over: true, result: SECOND, myColor: SECOND })).iWon).toBe(true);
   });
 
-  test("is false when the other side won", () => {
+  test("returns false when opponent wins", () => {
     expect(friendCopy(standing({ over: true, result: SECOND, myColor: FIRST })).iWon).toBe(false);
     expect(friendCopy(standing({ over: true, result: FIRST, myColor: SECOND })).iWon).toBe(false);
   });
 
-  test("is false on a draw and while the game is still running", () => {
+  test("returns false on draw or in progress", () => {
     expect(friendCopy(standing({ over: true, result: EMPTY, myColor: FIRST })).iWon).toBe(false);
     expect(friendCopy(standing({ over: false, result: FIRST, myColor: FIRST })).iWon).toBe(false);
   });
 
-  test("is false when you have no seat", () => {
+  test("returns false without assigned color", () => {
     expect(friendCopy(standing({ over: true, result: FIRST, myColor: null })).iWon).toBe(false);
   });
 });
 
-describe("finished games", () => {
-  test("a draw gets the draw title", () => {
+describe("friendCopy after game over", () => {
+  test("returns draw title", () => {
     const copy = friendCopy(standing({ over: true, result: EMPTY, moves: 42 }));
 
     expect(copy.title).toBe("A draw. Rare, and fair.");
     expect(copy.presence).toBeNull();
   });
 
-  test("the winner and the loser get their own title", () => {
+  test("returns win and loss titles", () => {
     expect(friendCopy(standing({ over: true, result: FIRST, myColor: FIRST })).title).toBe("You won.");
     expect(friendCopy(standing({ over: true, result: FIRST, myColor: SECOND })).title).toBe("They won.");
   });
 
-  test("the kicker carries the move count", () => {
+  test("includes move count in kicker", () => {
     expect(friendCopy(standing({ over: true, result: FIRST, moves: 17 })).kicker).toBe(
       "Four in a row with a friend, 17 moves",
     );
   });
 
-  test("the rematch line hands the first move to whoever played red, whatever the result", () => {
+  test("assigns rematch first move to red player", () => {
     for (const result of [FIRST, SECOND, EMPTY] as const) {
       expect(friendCopy(standing({ over: true, result, myColor: FIRST })).lede).toContain("so they move first");
       expect(friendCopy(standing({ over: true, result, myColor: SECOND })).lede).toContain("so you move first");
@@ -83,8 +83,8 @@ describe("finished games", () => {
   });
 });
 
-describe("games in progress", () => {
-  test("the kicker carries the move number and whose turn it is", () => {
+describe("friendCopy during game", () => {
+  test("includes move number and turn in kicker", () => {
     expect(friendCopy(standing({ moves: 6, mine: true })).kicker).toBe(
       "Four in a row with a friend, move 7, your move",
     );
@@ -93,12 +93,12 @@ describe("games in progress", () => {
     );
   });
 
-  test("the title follows the turn", () => {
+  test("returns title for current turn", () => {
     expect(friendCopy(standing({ mine: true })).title).toBe("Your move.");
     expect(friendCopy(standing({ mine: false })).title).toBe("Their move.");
   });
 
-  test("presence differs when the friend is here and when they are away", () => {
+  test("reflects opponent presence", () => {
     const here = friendCopy(standing({ joined: true }));
     const away = friendCopy(standing({ joined: false }));
 
@@ -108,49 +108,49 @@ describe("games in progress", () => {
     expect(away.lede).toContain("Your friend stepped away");
   });
 
-  test("the lede maps ink and red onto the two seats", () => {
+  test("maps colors to players in lede", () => {
     expect(friendCopy(standing({ myColor: FIRST })).lede).toContain("Ink is you, red is them.");
     expect(friendCopy(standing({ myColor: SECOND })).lede).toContain("Ink is them, red is you.");
   });
 });
 
-describe("spectators are told they are watching", () => {
+describe("friendCopy for spectators", () => {
   const watcher = (over: Partial<Standing> = {}) =>
     friendCopy(standing({ seat: SPECTATOR, myColor: null, mine: false, ...over }));
 
-  test("a spectator is never told it is their move", () => {
+  test("returns watching title regardless of turn", () => {
     expect(watcher().title).toBe("You are watching.");
     expect(watcher({ mine: true }).title).toBe("You are watching.");
   });
 
-  test("a spectator never wins", () => {
+  test("reports no win for spectator", () => {
     expect(watcher({ over: true, result: FIRST }).iWon).toBe(false);
     expect(watcher({ over: true, result: SECOND }).iWon).toBe(false);
   });
 
-  test("a finished game names the winning colour rather than you or them", () => {
+  test("names winning color on game over", () => {
     expect(watcher({ over: true, result: FIRST }).title).toBe("Ink won.");
     expect(watcher({ over: true, result: SECOND }).title).toBe("Red won.");
     expect(watcher({ over: true, result: EMPTY }).title).toBe("A draw. Rare, and fair.");
   });
 
-  test("the kicker says watching and never whose move it is", () => {
+  test("omits turn from kicker", () => {
     const kicker = watcher({ moves: 4 }).kicker;
     expect(kicker).toContain("watching");
     expect(kicker).not.toContain("your move");
     expect(kicker).not.toContain("their move");
   });
 
-  test("a spectator is told rematch is not theirs to start", () => {
+  test("restricts rematch to players in lede", () => {
     expect(watcher({ over: true, result: FIRST }).lede).toContain("Only the two players");
   });
 
-  test("watcher count is pluralised", () => {
+  test("formats spectator count", () => {
     expect(watcher({ watching: 1 }).presence).toBe("1 watching");
     expect(watcher({ watching: 3 }).presence).toBe("3 watching");
   });
 
-  test("a seated player is told how many are watching", () => {
+  test("includes spectator count for seated player", () => {
     expect(friendCopy(standing({ watching: 2, mine: false })).presence).toContain("2 watching");
   });
 });

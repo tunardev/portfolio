@@ -33,7 +33,7 @@ const drawBoard = () => {
 };
 
 describe("initialGame", () => {
-  test("starts from an empty board with an even confidence reading", () => {
+  test("returns empty board with 0.5 confidence", () => {
     const state = initialGame();
 
     expect(state.board).toEqual(emptyBoard());
@@ -46,8 +46,8 @@ describe("initialGame", () => {
   });
 });
 
-describe("human moves", () => {
-  test("records the column, the landing cell and hands the turn to the model", () => {
+describe("gameReducer human action", () => {
+  test("records move and sets thinking", () => {
     const next = gameReducer(initialGame(), { type: "human", col: 3 });
 
     expect(next.moves).toEqual([3]);
@@ -57,7 +57,7 @@ describe("human moves", () => {
     expect(next.confidence).toEqual([0.5]);
   });
 
-  test("stacks onto the highest filled cell of the column", () => {
+  test("stacks onto highest filled cell", () => {
     const first = gameReducer(initialGame(), { type: "human", col: 2 });
     const second = gameReducer(first, { type: "model", reply: reply(2, 0.5) });
     const third = gameReducer(second, { type: "human", col: 2 });
@@ -67,7 +67,7 @@ describe("human moves", () => {
     expect(third.moves).toEqual([2, 2, 2]);
   });
 
-  test("a winning drop stops the thinking and records the human floor", () => {
+  test("records floor confidence on human win", () => {
     const board = rowOf(emptyBoard(), 0, [
       [0, FIRST],
       [1, FIRST],
@@ -79,7 +79,7 @@ describe("human moves", () => {
     expect(next.confidence).toEqual([0.5, 0.02]);
   });
 
-  test("a drop that fills the last cell without a line records an even draw", () => {
+  test("records 0.5 confidence on draw", () => {
     const next = gameReducer(withBoard(drawBoard()), { type: "human", col: 0 });
 
     expect(isOver(next.board)).toBe(true);
@@ -88,8 +88,8 @@ describe("human moves", () => {
   });
 });
 
-describe("model moves", () => {
-  test("records the reply column, its expectation and clears the thinking flag", () => {
+describe("gameReducer model action", () => {
+  test("records reply and clears thinking", () => {
     const state = gameReducer(initialGame(), { type: "human", col: 3 });
     const next = gameReducer(state, { type: "model", reply: reply(4, 0.61, 2, true) });
 
@@ -102,7 +102,7 @@ describe("model moves", () => {
     expect(next.confidence).toEqual([0.5, 0.61]);
   });
 
-  test("clamps confidence to the floor and the ceiling", () => {
+  test("clamps confidence to bounds", () => {
     const thinking = withBoard(emptyBoard(), { thinking: true });
     const floor = gameReducer(thinking, { type: "model", reply: reply(0, 0) });
     const ceiling = gameReducer(thinking, { type: "model", reply: reply(0, 1) });
@@ -111,7 +111,7 @@ describe("model moves", () => {
     expect(ceiling.confidence).toEqual([0.5, 0.97]);
   });
 
-  test("a winning reply records the model ceiling above the clamp", () => {
+  test("records ceiling confidence on model win", () => {
     const board = rowOf(emptyBoard(), 0, [
       [0, SECOND],
       [1, SECOND],
@@ -123,15 +123,15 @@ describe("model moves", () => {
   });
 });
 
-describe("moves that do not belong to the current game are ignored", () => {
-  test("a model reply that lands after a reset", () => {
+describe("gameReducer invalid actions", () => {
+  test("ignores model reply after reset", () => {
     const thinking = gameReducer(initialGame(), { type: "human", col: 3 });
     const fresh = gameReducer(thinking, { type: "reset" });
 
     expect(gameReducer(fresh, { type: "model", reply: reply(4, 0.6) })).toBe(fresh);
   });
 
-  test("a model reply into a full column", () => {
+  test("ignores model reply into full column", () => {
     const board = emptyBoard();
     for (let row = 0; row < ROWS; row++) board[row][2] = row % 2 === 0 ? FIRST : SECOND;
     const state = withBoard(board, { thinking: true });
@@ -139,7 +139,7 @@ describe("moves that do not belong to the current game are ignored", () => {
     expect(gameReducer(state, { type: "model", reply: reply(2, 0.6) })).toBe(state);
   });
 
-  test("a human drop into a full column", () => {
+  test("ignores human move into full column", () => {
     const board = emptyBoard();
     for (let row = 0; row < ROWS; row++) board[row][5] = row % 2 === 0 ? FIRST : SECOND;
     const state = withBoard(board);
@@ -147,13 +147,13 @@ describe("moves that do not belong to the current game are ignored", () => {
     expect(gameReducer(state, { type: "human", col: 5 })).toBe(state);
   });
 
-  test("a human drop while the model is thinking", () => {
+  test("ignores human move while thinking", () => {
     const thinking = gameReducer(initialGame(), { type: "human", col: 3 });
 
     expect(gameReducer(thinking, { type: "human", col: 2 })).toBe(thinking);
   });
 
-  test("a human drop once the game is over", () => {
+  test("ignores human move after game over", () => {
     const board = rowOf(emptyBoard(), 0, [
       [0, SECOND],
       [1, SECOND],
@@ -166,8 +166,8 @@ describe("moves that do not belong to the current game are ignored", () => {
   });
 });
 
-describe("purity", () => {
-  test("a human move leaves the previous state and its board untouched", () => {
+describe("gameReducer immutability", () => {
+  test("does not mutate state on human action", () => {
     const state = initialGame();
     const board = state.board;
 
@@ -179,7 +179,7 @@ describe("purity", () => {
     expect(state.last).toBeNull();
   });
 
-  test("a model move leaves the previous state and its board untouched", () => {
+  test("does not mutate state on model action", () => {
     const state = gameReducer(initialGame(), { type: "human", col: 3 });
     const before = state.board.map((row) => [...row]);
 
@@ -191,8 +191,8 @@ describe("purity", () => {
   });
 });
 
-describe("reset", () => {
-  test("returns a fresh game", () => {
+describe("gameReducer reset action", () => {
+  test("returns initial state", () => {
     const played = gameReducer(gameReducer(initialGame(), { type: "human", col: 3 }), {
       type: "model",
       reply: reply(4, 0.7, 1, true),
@@ -203,12 +203,12 @@ describe("reset", () => {
 });
 
 describe("isOver", () => {
-  test("is false for an empty board and for a board still in play", () => {
+  test("returns false for game in progress", () => {
     expect(isOver(emptyBoard())).toBe(false);
     expect(isOver(gameReducer(initialGame(), { type: "human", col: 3 }).board)).toBe(false);
   });
 
-  test("is true once a line is on the board", () => {
+  test("returns true on win", () => {
     const board = rowOf(emptyBoard(), 0, [
       [0, FIRST],
       [1, FIRST],
@@ -219,7 +219,7 @@ describe("isOver", () => {
     expect(isOver(board)).toBe(true);
   });
 
-  test("is true once the board is full", () => {
+  test("returns true on full board", () => {
     const board = drawBoard();
     board[ROWS - 1][0] = SECOND;
 
