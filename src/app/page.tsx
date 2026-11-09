@@ -5,9 +5,11 @@ import { FigureLoop } from "@/components/FigureLoop";
 import { GameGate } from "@/components/GameGate";
 import { Lore } from "@/components/Lore";
 import { Shelf } from "@/components/Shelf";
+import { calculateAge } from "@/lib/calculate-age";
 import { jsonLdScript } from "@/lib/jsonld";
 import {
   AUTHOR,
+  AUTHOR_BIRTH_DATE,
   EMAIL,
   INSTRACT_URL,
   PERSON_ID,
@@ -46,13 +48,15 @@ const structuredData = [
   },
 ];
 
+export const revalidate = 86400;
+
 export default function Home() {
   return (
     <main className="column">
       <GameGate>
         <p className="prose">
-          I&apos;m 18 and self-taught. I work on distributed systems, machine learning, and moving large amounts of data
-          around without losing any of it.
+          I&apos;m {calculateAge(AUTHOR_BIRTH_DATE)} and self-taught. I work on distributed systems, machine learning,
+          and moving large amounts of data around without losing any of it.
         </p>
         <p className="prose">
           What I like most are the pieces of big things: the consensus protocol under a database, the scheduler under a

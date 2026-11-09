@@ -1,6 +1,7 @@
 export const SITE_URL = "https://tunar.dev";
 export const SITE_NAME = "Tunar";
 export const AUTHOR = "Tunar";
+export const AUTHOR_BIRTH_DATE = "2008-02-23";
 
 export const SITE_DESCRIPTION =
   "Self-taught engineer working on distributed systems, machine learning, and moving large amounts of data without losing a row. Building Instract.";
