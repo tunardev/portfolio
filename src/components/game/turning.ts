@@ -1,6 +1,5 @@
 import { EMPTY, FIRST, type Cell } from "./engine";
 
-// move indexes the confidence series, which gains one reading per exchange; ply is the human move that opened it
 export type Turning = { move: number; ply: number; column: number } | null;
 
 export function findTurning(confidence: number[], result: Cell, moves: number[]): Turning {

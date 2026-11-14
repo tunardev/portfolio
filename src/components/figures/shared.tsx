@@ -1,10 +1,11 @@
+import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
-import { SOFT } from "./palette";
+import { breakpoints, colors } from "@/styles/tokens.stylex";
 
 export function Label({
   x,
   y,
-  color = SOFT,
+  color = colors.inkSoft,
   anchor = "start",
   children,
 }: {
@@ -15,8 +16,22 @@ export function Label({
   children: ReactNode;
 }) {
   return (
-    <text x={x} y={y} fontSize={12} fill={color} stroke="none" textAnchor={anchor} dominantBaseline="central">
+    <text
+      x={x}
+      y={y}
+      fill={color}
+      stroke="none"
+      textAnchor={anchor}
+      dominantBaseline="central"
+      {...stylex.props(styles.label)}
+    >
       {children}
     </text>
   );
 }
+
+const styles = stylex.create({
+  label: {
+    fontSize: { default: "12px", [breakpoints.mobile]: "19px" },
+  },
+});

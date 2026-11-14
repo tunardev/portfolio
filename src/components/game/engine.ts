@@ -131,7 +131,6 @@ function evaluateForSecond(board: Board): number {
   return score;
 }
 
-// mutates board while searching but always restores it before returning
 function negamax(board: Board, depth: number, alpha: number, beta: number, player: Player): number {
   const won = winner(board);
   if (won === player) return DECIDED + depth;

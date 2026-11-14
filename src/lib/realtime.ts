@@ -18,7 +18,6 @@ export function isRealtimeConfigured() {
 async function connect(): Promise<RealtimeClient | null> {
   const config = credentials();
   if (!config) return null;
-  // realtime-js alone, not supabase-js: friend games never sign in, query tables, or touch storage
   const { RealtimeClient } = await import("@supabase/realtime-js");
   const endpoint = new URL("realtime/v1", config.url.endsWith("/") ? config.url : `${config.url}/`);
   endpoint.protocol = endpoint.protocol.replace("http", "ws");
@@ -29,7 +28,6 @@ async function connect(): Promise<RealtimeClient | null> {
 }
 
 export function realtime(): Promise<RealtimeClient | null> {
-  // a failed chunk load must not be cached, or friend games stay broken until a full reload
   pending ??= connect().catch((error: unknown) => {
     pending = null;
     throw error;

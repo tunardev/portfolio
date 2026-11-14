@@ -1,14 +1,17 @@
+import * as stylex from "@stylexjs/stylex";
 import { useRouter } from "next/navigation";
+import { shortId } from "@/lib/realtime";
+import { shared } from "@/styles/shared";
+import { breakpoints, colors, fontSizes, lineHeights, sizes, spacing } from "@/styles/tokens.stylex";
 import { Board } from "./Board";
 import { Confetti } from "./Confetti";
 import { EvalPanel } from "./EvalPanel";
 import { GameHeader } from "./GameHeader";
 import { TurnChart } from "./TurnChart";
 import { FIRST, SECOND, type Cell } from "./engine";
+import { gameStyles } from "./gameStyles";
 import { useModelGame } from "./useModelGame";
 import type { Stats } from "./stats";
-import { shortId } from "@/lib/realtime";
-import styles from "./FourInARow.module.css";
 
 type Props = { onClose: () => void; stats: Stats | null; onStats: (stats: Stats) => void };
 
@@ -31,20 +34,20 @@ export function FourInARow({ onClose, stats, onStats }: Props) {
       : "";
 
   return (
-    <section className={styles.game} aria-label="Four in a row against the model">
+    <section {...stylex.props(gameStyles.game)} aria-label="Four in a row against the model">
       {game.over && game.result === FIRST && <Confetti key={played} />}
 
-      <p className="visually-hidden" role="status">
+      <p {...stylex.props(shared.visuallyHidden)} role="status">
         {announcement}
       </p>
-      <p className={styles.kicker}>
+      <p {...stylex.props(gameStyles.kicker)}>
         Four in a row,{" "}
         {game.over ? `${played} moves` : `move ${played + 1}, ${game.humanTurn ? "your turn" : "thinking"}`}
       </p>
 
       <GameHeader over={game.over} result={game.result} stats={stats} turning={game.turning} onInvite={inviteFriend} />
 
-      <div className={styles.boardRow}>
+      <div {...stylex.props(styles.boardRow)}>
         <Board
           board={game.board}
           canPlay={game.humanTurn}
@@ -64,17 +67,33 @@ export function FourInARow({ onClose, stats, onStats }: Props) {
       {game.over ? (
         <TurnChart confidence={game.confidence} moves={played} turning={game.turning} trainedOn={game.trainedOn} />
       ) : (
-        <p className={styles.help}>Ink is you, red is the model. Tap a column. The ring is the last move.</p>
+        <p {...stylex.props(styles.help)}>Ink is you, red is the model. Tap a column. The ring is the last move.</p>
       )}
 
-      <div className={styles.actions}>
-        <button type="button" className="pill" onClick={game.reset} disabled={!game.over && played === 0}>
+      <div {...stylex.props(gameStyles.actions)}>
+        <button type="button" {...stylex.props(shared.pill)} onClick={game.reset} disabled={!game.over && played === 0}>
           {game.over ? "Play again" : "Start over"}
         </button>
-        <button type="button" className={styles.quiet} onClick={onClose}>
+        <button type="button" {...stylex.props(gameStyles.quiet)} onClick={onClose}>
           back to the page
         </button>
       </div>
     </section>
   );
 }
+
+const styles = stylex.create({
+  boardRow: {
+    display: "flex",
+    flexDirection: { default: null, [breakpoints.mobile]: "column" },
+    alignItems: "flex-start",
+    gap: { default: sizes.gutter, [breakpoints.mobile]: spacing.lg },
+    inlineSize: "100%",
+    marginBlockStart: spacing.sm,
+  },
+  help: {
+    fontSize: fontSizes.small,
+    lineHeight: lineHeights.small,
+    color: colors.inkSoft,
+  },
+});

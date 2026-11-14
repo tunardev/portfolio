@@ -1,31 +1,32 @@
 "use client";
 
+import * as stylex from "@stylexjs/stylex";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { MarkIcon } from "./Mark";
 import { ThemeToggle } from "./ThemeToggle";
 import { loadNet } from "./game/model";
 import { fetchStats, type Stats } from "./game/stats";
-import styles from "./GameGate.module.css";
+import { shared } from "@/styles/shared";
+import { colors, durations, easings, radii, sizes } from "@/styles/tokens.stylex";
 
 const PLAY_HASH = "#play";
 
 const FourInARow = dynamic(() => import("./game/FourInARow").then((mod) => mod.FourInARow), { ssr: false });
 
 export function GameGate({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const mark = useRef<HTMLButtonElement>(null);
 
   const openGame = useCallback(() => {
-    setOpen(true);
+    setIsOpen(true);
     void loadNet();
     void fetchStats().then((fetched) => fetched && setStats(fetched));
   }, []);
 
-  // the close button unmounts with the game, so focus goes back to the toggle instead of the body
   const closeGame = () => {
-    setOpen(false);
+    setIsOpen(false);
     mark.current?.focus();
   };
 
@@ -41,16 +42,16 @@ export function GameGate({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <div className="top">
-        <h1 className="name">
+      <div {...stylex.props(shared.header)}>
+        <h1 {...stylex.props(shared.siteName)}>
           <button
             ref={mark}
             type="button"
-            className={styles.mark}
-            onClick={() => (open ? setOpen(false) : openGame())}
-            aria-pressed={open}
-            aria-label={open ? "Close the game" : "Play four in a row against the model"}
-            title={open ? "Back to the page" : "Play"}
+            {...stylex.props(styles.mark, isOpen && styles.markPressed)}
+            onClick={() => (isOpen ? setIsOpen(false) : openGame())}
+            aria-pressed={isOpen}
+            aria-label={isOpen ? "Close the game" : "Play four in a row against the model"}
+            title={isOpen ? "Back to the page" : "Play"}
           >
             <MarkIcon />
           </button>
@@ -58,7 +59,25 @@ export function GameGate({ children }: { children: ReactNode }) {
         </h1>
         <ThemeToggle />
       </div>
-      {open ? <FourInARow onClose={closeGame} stats={stats} onStats={setStats} /> : children}
+      {isOpen ? <FourInARow onClose={closeGame} stats={stats} onStats={setStats} /> : children}
     </>
   );
 }
+
+const styles = stylex.create({
+  mark: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    inlineSize: sizes.control,
+    blockSize: sizes.control,
+    borderRadius: radii.md,
+    color: colors.ink,
+    transform: { default: null, ":hover": "rotate(-8deg) translateY(-1px)" },
+    backgroundColor: { default: null, ":hover": colors.wash },
+    transition: `transform ${durations.base} ${easings.out}, background-color ${durations.fast} ease`,
+  },
+  markPressed: {
+    transform: "rotate(90deg)",
+  },
+});

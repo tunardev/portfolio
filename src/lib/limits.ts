@@ -8,8 +8,6 @@ type Window = { count: number; startedAt: number };
 const windows = new Map<string, Window>();
 const submissions = new Map<string, number>();
 
-// every key is deleted and re-set when its timer restarts, so map order is oldest first
-// and pruning can stop at the first live entry
 function prune<V>(entries: Map<string, V>, startOf: (value: V) => number, ttl: number, now: number) {
   for (const [key, value] of entries) {
     if (now - startOf(value) < ttl && entries.size < MAX_TRACKED_KEYS) return;

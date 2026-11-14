@@ -25,7 +25,7 @@ Copy `.env.example` to `.env` if you need the Supabase-backed multiplayer game l
 | `bun run lint` | Biome check (lint + format verification) |
 | `bun run lint:fix` | Biome check with safe fixes applied |
 | `bun run format` | Biome formatter, write mode |
-| `bun run analyze` | Webpack build with the bundle analyzer report |
+| `bun run analyze` | Turbopack bundle analyzer (`next experimental-analyze`) |
 | `bun run train` | Retrain the four-in-a-row model |
 | `bun run doctor` | react-doctor over the project |
 

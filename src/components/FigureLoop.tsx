@@ -1,11 +1,11 @@
 "use client";
 
+import * as stylex from "@stylexjs/stylex";
 import { useEffect, useRef, useState } from "react";
+import { breakpoints, colors, fontSizes, lineHeights, spacing } from "@/styles/tokens.stylex";
 import { FIGURES, STAGE_H, STAGE_W } from "./figures";
-import styles from "./FigureLoop.module.css";
 
 const CROSSFADE_MS = 700;
-// a hidden tab stops requestAnimationFrame, so the first frame back reports the whole absence as one step
 const MAX_STEP_MS = 100;
 
 type Frame = { index: number; time: number; fade: number | null };
@@ -21,16 +21,16 @@ export function FigureLoop() {
     if (!element) return;
 
     const motion = matchMedia("(prefers-reduced-motion: reduce)");
-    let reduced = motion.matches;
+    let shouldReduceMotion = motion.matches;
     let index = 0;
     let elapsedMs = 0;
     let fadeMs: number | null = null;
     let last = 0;
-    let raf = 0;
+    let animationFrame = 0;
 
     const show = () => {
       const figure = FIGURES[index];
-      if (reduced) {
+      if (shouldReduceMotion) {
         setFrame({ index, time: figure.duration, fade: null });
         return;
       }
@@ -59,37 +59,37 @@ export function FigureLoop() {
       } else {
         elapsedMs += step;
         if (elapsedMs >= figure.duration * figure.pace * 1000) {
-          if (reduced) advance();
+          if (shouldReduceMotion) advance();
           else fadeMs = 0;
         }
       }
-      if (!reduced || index !== shown) show();
+      if (!shouldReduceMotion || index !== shown) show();
 
-      raf = requestAnimationFrame(tick);
+      animationFrame = requestAnimationFrame(tick);
     };
 
     const start = () => {
-      if (raf) return;
-      raf = requestAnimationFrame((now) => {
+      if (animationFrame) return;
+      animationFrame = requestAnimationFrame((now) => {
         last = now;
         tick(now);
       });
     };
 
     const stop = () => {
-      cancelAnimationFrame(raf);
-      raf = 0;
+      cancelAnimationFrame(animationFrame);
+      animationFrame = 0;
     };
 
     const onMotionChange = () => {
-      reduced = motion.matches;
+      shouldReduceMotion = motion.matches;
       show();
     };
 
     const observer = new IntersectionObserver((entries) => (entries.at(-1)?.isIntersecting ? start() : stop()));
     observer.observe(element);
     motion.addEventListener("change", onMotionChange);
-    if (reduced) show();
+    if (shouldReduceMotion) show();
 
     return () => {
       stop();
@@ -104,8 +104,8 @@ export function FigureLoop() {
   const captioned = fade !== null && fade > 0.5 ? next : current;
 
   return (
-    <figure ref={ref} className={styles.figure}>
-      <svg className={styles.svg} viewBox={`0 0 ${STAGE_W} ${STAGE_H}`} aria-hidden="true">
+    <figure ref={ref} {...stylex.props(styles.figure)}>
+      <svg {...stylex.props(styles.svg)} viewBox={`0 0 ${STAGE_W} ${STAGE_H}`} aria-hidden="true">
         <g opacity={fade === null ? 1 : 1 - smoothstep(fade)}>
           <current.View t={frame.time} />
         </g>
@@ -115,7 +115,31 @@ export function FigureLoop() {
           </g>
         )}
       </svg>
-      <figcaption className={styles.caption}>{captioned.caption}</figcaption>
+      <figcaption {...stylex.props(styles.caption)}>{captioned.caption}</figcaption>
     </figure>
   );
 }
+
+const styles = stylex.create({
+  figure: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    inlineSize: "100%",
+    margin: 0,
+    paddingBlockStart: spacing.sm,
+    paddingBlockEnd: spacing.xxs,
+  },
+  svg: {
+    display: "block",
+    overflow: "visible",
+    inlineSize: "100%",
+    aspectRatio: "680 / 224",
+    fontVariantNumeric: "tabular-nums",
+  },
+  caption: {
+    fontSize: { default: fontSizes.small, [breakpoints.mobile]: fontSizes.fine },
+    lineHeight: { default: lineHeights.small, [breakpoints.mobile]: lineHeights.fine },
+    color: colors.inkSoft,
+  },
+});

@@ -43,7 +43,6 @@ function isColumnList(value: unknown): value is number[] {
   );
 }
 
-// the human always moves first against the model, so FIRST winning is a human win
 function outcomeOf(moves: number[]): Outcome | null {
   const board = emptyBoard();
   let player: Player = FIRST;

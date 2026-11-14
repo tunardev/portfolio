@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { clamp01, INK, ink, PAPER, RED, red } from "./palette";
+import { colors } from "@/styles/tokens.stylex";
+import { clamp01, ink, red } from "./palette";
 import { Label } from "./shared";
 
 const layers = [3, 4, 4, 2];
@@ -50,8 +51,8 @@ export function Backprop({ t }: { t: number }) {
             cx={n.x}
             cy={n.y}
             r={5}
-            fill={l === 3 && fwd >= 1 ? INK : PAPER}
-            stroke={lit ? INK : ink(0.35)}
+            fill={l === 3 && fwd >= 1 ? colors.ink : colors.paper}
+            stroke={lit ? colors.ink : ink(0.35)}
             strokeWidth={1.3}
           />
         ));
@@ -65,8 +66,8 @@ export function Backprop({ t }: { t: number }) {
       {fwd >= 1 && (
         <g>
           <line x1={531} y1={MID} x2={567} y2={MID} stroke={red(0.7)} strokeWidth={1.4} />
-          <circle cx={575} cy={MID} r={5} fill={RED} />
-          <Label x={555} y={MID + 58} color={RED} anchor="middle">
+          <circle cx={575} cy={MID} r={5} fill={colors.red} />
+          <Label x={555} y={MID + 58} color={colors.red} anchor="middle">
             loss {shown.toFixed(2)}
           </Label>
         </g>

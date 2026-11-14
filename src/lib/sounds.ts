@@ -3,7 +3,6 @@ let masterNode: AudioNode | null = null;
 let noiseBuffer: AudioBuffer | null = null;
 let sounding: { env: GainNode; source: AudioBufferSourceNode } | null = null;
 
-// a resume() that only settles on some later gesture would fire this sound long after its moment
 const STALE_RESUME_MS = 250;
 
 function play(sound: (ac: AudioContext, now: number) => void) {

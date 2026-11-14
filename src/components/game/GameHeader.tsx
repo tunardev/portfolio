@@ -1,7 +1,12 @@
+import * as stylex from "@stylexjs/stylex";
+import { Chevron } from "@/components/Chevron";
+import { chevronLinkMarker } from "@/styles/markers.stylex";
+import { shared } from "@/styles/shared";
+import { fontSizes, lineHeights } from "@/styles/tokens.stylex";
 import { FIRST, SECOND, type Cell } from "./engine";
+import { gameStyles } from "./gameStyles";
 import type { Stats } from "./stats";
 import type { Turning } from "./turning";
-import styles from "./FourInARow.module.css";
 
 const MIN_GAMES_TO_BOAST = 20;
 
@@ -33,9 +38,9 @@ export function GameHeader({ over, result, stats, turning, onInvite }: Props) {
   if (over) {
     return (
       <>
-        <h2 className={styles.title}>{headline(result, stats)}</h2>
+        <h2 {...stylex.props(gameStyles.title)}>{headline(result, stats)}</h2>
         {turning && (
-          <p className={`${styles.lede} ${styles.ledeStrong}`}>
+          <p {...stylex.props(gameStyles.lede, gameStyles.ledeStrong)}>
             The game turned at move {turning.ply}, in column {turning.column + 1}.{" "}
             {result === FIRST
               ? "It expected a different reply and never recovered."
@@ -48,20 +53,24 @@ export function GameHeader({ over, result, stats, turning, onInvite }: Props) {
 
   return (
     <>
-      <h2 className={styles.title}>Play the model. It learns from every game.</h2>
-      <p className={styles.lede}>{standing(stats)}</p>
-      <button type="button" className={`chevron-link ${styles.friend}`} onClick={onInvite}>
+      <h2 {...stylex.props(gameStyles.title)}>Play the model. It learns from every game.</h2>
+      <p {...stylex.props(gameStyles.lede)}>{standing(stats)}</p>
+      <button
+        type="button"
+        {...stylex.props(shared.chevronLink, chevronLinkMarker, styles.friendLink)}
+        onClick={onInvite}
+      >
         or play a friend with a link
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-          <path
-            d="M3.5 2 L6.5 5 L3.5 8"
-            stroke="currentColor"
-            strokeWidth="1.3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <Chevron />
       </button>
     </>
   );
 }
+
+const styles = stylex.create({
+  friendLink: {
+    marginBlockStart: "-6px",
+    fontSize: fontSizes.meta,
+    lineHeight: lineHeights.meta,
+  },
+});

@@ -107,7 +107,6 @@ export function predict(net: Net, board: Board, player: Player): Prediction {
   return { priors, value };
 }
 
-// mutates board while searching but always restores it before returning
 function search(net: Net, board: Board, player: Player, depth: number, alpha: number, beta: number): number {
   const won = winner(board);
   if (won === player) return 1 + depth * DEPTH_BONUS;

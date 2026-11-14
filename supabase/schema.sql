@@ -6,7 +6,6 @@ create table if not exists games (
   created_at timestamptz not null default now()
 );
 
--- not valid: checks every new row without refusing to apply over rows that predate the constraint
 alter table games drop constraint if exists games_moves_check;
 alter table games add constraint games_moves_check check (
   array_ndims(moves) = 1
@@ -33,7 +32,6 @@ create table if not exists model_versions (
 
 create index if not exists model_versions_trained_at_idx on model_versions (trained_at desc);
 
--- no policies on purpose: only the server's service role key, which bypasses rls, reads or writes these
 alter table games enable row level security;
 alter table model_versions enable row level security;
 

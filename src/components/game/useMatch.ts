@@ -40,7 +40,6 @@ function subscribe(listener: () => void) {
   };
 }
 
-// storage can throw when the browser blocks site data; keep the match playable in memory then
 function readItem(key: string) {
   try {
     return localStorage.getItem(key);
@@ -82,7 +81,6 @@ function parseSync(raw: string | null): Sync {
   }
 }
 
-// read storage, not rendered state, so two broadcasts landing before a re-render compare against the newest
 const readSync = (id: string) => parseSync(readItem(stateKey(id)));
 
 export function isAhead(theirs: Sync, ours: Sync) {
@@ -123,7 +121,6 @@ export function connect(
 
   const open = async () => {
     const client = await load();
-    // the client hands back a still-leaving channel for the same topic, and it cannot be joined twice
     await leaving.get(topic);
     if (cancelled || !client) return;
 
@@ -193,7 +190,6 @@ export function useMatch(id: string) {
   );
   const sync = useMemo(() => parseSync(syncRaw), [syncRaw]);
 
-  // claimed after hydration: the server has no identity, so rendering one on the first pass would mismatch
   useEffect(() => setMe(claimIdentity(id)), [id]);
 
   useEffect(() => {

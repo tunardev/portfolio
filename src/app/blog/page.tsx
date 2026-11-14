@@ -1,13 +1,17 @@
+import * as stylex from "@stylexjs/stylex";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Chevron } from "@/components/Chevron";
-import { MarkIcon } from "@/components/Mark";
+import { HomeLink } from "@/components/HomeLink";
+import { PostList } from "@/components/PostList";
 import { PostRow } from "@/components/PostRow";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { jsonLdScript } from "@/lib/jsonld";
 import { getPosts } from "@/lib/posts";
 import { AUTHOR, BLOG_DESCRIPTION, BLOG_ID, BLOG_TAGLINE, PERSON_ID, SITE_NAME, SITE_URL } from "@/lib/site";
-import styles from "./blog.module.css";
+import { chevronLinkMarker } from "@/styles/markers.stylex";
+import { shared } from "@/styles/shared";
+import { fontSizes, sizes, spacing } from "@/styles/tokens.stylex";
 
 const LISTING_DESCRIPTION =
   "How big tech actually works, one piece at a time: Raft, write-ahead logs, consistent hashing, Merkle trees, backpropagation.";
@@ -63,26 +67,21 @@ export default async function BlogIndex() {
   ];
 
   return (
-    <main className="column">
-      <div className={`top ${styles.indexTop}`}>
-        <Link href="/" className="name">
-          <span className="mark-slot">
-            <MarkIcon />
-          </span>
-          <span>{SITE_NAME}</span>
-        </Link>
+    <main {...stylex.props(shared.column)}>
+      <div {...stylex.props(shared.header, styles.header)}>
+        <HomeLink />
         <ThemeToggle />
       </div>
 
-      <h1 className={`prose ${styles.indexTitle}`}>Blog. {BLOG_TAGLINE}</h1>
+      <h1 {...stylex.props(shared.prose, styles.title)}>Blog. {BLOG_TAGLINE}</h1>
 
-      <ul className={styles.list}>
+      <PostList>
         {posts.map((post) => (
           <PostRow key={post.slug} post={post} />
         ))}
-      </ul>
+      </PostList>
 
-      <Link href="/feed.xml" prefetch={false} className={`chevron-link ${styles.feed}`}>
+      <Link href="/feed.xml" prefetch={false} {...stylex.props(shared.chevronLink, chevronLinkMarker, styles.feedLink)}>
         rss
         <Chevron />
       </Link>
@@ -91,3 +90,18 @@ export default async function BlogIndex() {
     </main>
   );
 }
+
+const styles = stylex.create({
+  header: {
+    paddingBlockEnd: sizes.gutter,
+  },
+  title: {
+    margin: 0,
+    paddingBlockEnd: spacing.sm,
+    fontSize: fontSizes.body,
+    fontWeight: 400,
+  },
+  feedLink: {
+    marginBlockStart: spacing.sm,
+  },
+});

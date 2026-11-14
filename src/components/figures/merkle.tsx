@@ -1,4 +1,5 @@
-import { clamp01, easeOut, ink, PAPER, RED, red } from "./palette";
+import { colors } from "@/styles/tokens.stylex";
+import { clamp01, easeOut, ink, red } from "./palette";
 import { Label } from "./shared";
 
 const leaves = Array.from({ length: 8 }, (_, i) => 95 + i * 70);
@@ -28,7 +29,6 @@ const edgeHot = (edge: Edge, t: number) => onPath(edge) && t >= rippleAt[edge.le
 const nodeHot = (node: Spot, t: number) => onPath(node) && t >= rippleAt[node.level];
 const PATH_NODES = NODES.filter(onPath);
 
-// hot edges go last so they paint over their cold neighbours
 function edgesHotLast(t: number) {
   const cold: { edge: Edge; hot: boolean }[] = [];
   const hot: { edge: Edge; hot: boolean }[] = [];
@@ -40,9 +40,9 @@ function edgesHotLast(t: number) {
 }
 
 function nodePaint(level: number, hot: boolean) {
-  if (hot && level === 0) return { fill: RED, stroke: "none", strokeWidth: 0 };
-  if (hot) return { fill: red(0.12), stroke: RED, strokeWidth: 1.3 };
-  return { fill: level === 0 ? ink(0.08) : PAPER, stroke: ink(0.45), strokeWidth: 1 };
+  if (hot && level === 0) return { fill: colors.red, stroke: "none", strokeWidth: 0 };
+  if (hot) return { fill: red(0.12), stroke: colors.red, strokeWidth: 1.3 };
+  return { fill: level === 0 ? ink(0.08) : colors.paper, stroke: ink(0.45), strokeWidth: 1 };
 }
 
 function EdgeLine({ edge, hot }: { edge: Edge; hot: boolean }) {
@@ -96,7 +96,7 @@ export function Merkle({ t }: { t: number }) {
         <Ring key={`r${node.level}`} node={node} t={t} />
       ))}
       {t >= rippleAt[3] && (
-        <Label x={lv3[0] + 26} y={ys[3] + NH / 2} color={RED}>
+        <Label x={lv3[0] + 26} y={ys[3] + NH / 2} color={colors.red}>
           root
         </Label>
       )}

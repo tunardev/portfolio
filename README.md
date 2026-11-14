@@ -12,7 +12,7 @@ Live at **[tunar.dev](https://tunar.dev)**.
 | | |
 | --- | --- |
 | Framework | Next.js 16 (App Router, Turbopack), React 19, TypeScript |
-| Styling | Plain CSS Modules over a custom-property token layer |
+| Styling | StyleX |
 | Type | Geist Sans, Newsreader |
 | Data | Supabase Postgres for the game record, Supabase Realtime for friend matches |
 | Model | TensorFlow.js to train, hand-written inference and alpha-beta search in the browser |
@@ -34,7 +34,7 @@ bun run build      # production build
 bun run typecheck  # tsc --noEmit
 bun run lint       # biome
 bun run test       # bun test
-bun run analyze    # bundle report in .next/analyze
+bun run analyze    # Turbopack bundle analyzer
 bun run train      # retrain the model into public/model/weights.json
 ```
 
@@ -52,6 +52,7 @@ scripts/train.ts     the training run
 src/app/             routes, metadata, sitemap, feed, OG images
 src/components/      UI, the game, the SVG figures, the scene generator
 src/lib/             posts, site constants, sounds, Supabase clients
+src/styles/          StyleX tokens, markers, and shared styles
 supabase/schema.sql  tables and indexes
 ```
 

@@ -1,3 +1,4 @@
+import * as stylex from "@stylexjs/stylex";
 import Link from "next/link";
 import { Chevron } from "@/components/Chevron";
 import { EmailCopy } from "@/components/EmailCopy";
@@ -20,6 +21,8 @@ import {
   WEBSITE_ID,
   X_HANDLE,
 } from "@/lib/site";
+import { chevronLinkMarker } from "@/styles/markers.stylex";
+import { shared } from "@/styles/shared";
 
 const structuredData = [
   {
@@ -52,50 +55,52 @@ export const revalidate = 86400;
 
 export default function Home() {
   return (
-    <main className="column">
+    <main {...stylex.props(shared.column)}>
       <GameGate>
-        <p className="prose">
+        <p {...stylex.props(shared.prose)}>
           I&apos;m {calculateAge(AUTHOR_BIRTH_DATE)} and self-taught. I work on distributed systems, machine learning,
           and moving large amounts of data around without losing any of it.
         </p>
-        <p className="prose">
+        <p {...stylex.props(shared.prose)}>
           What I like most are the pieces of big things: the consensus protocol under a database, the scheduler under a
           cluster, the parts most people never see.
         </p>
 
         <FigureLoop />
 
-        <p className="prose">
+        <p {...stylex.props(shared.prose)}>
           Right now I&apos;m building{" "}
-          <a href="/instract" target="_blank" rel="noreferrer" className="underline">
+          <a href="/instract" target="_blank" rel="noreferrer" {...stylex.props(shared.underline)}>
             Instract
           </a>
           , custom AI software for enterprises.
         </p>
 
         <Lore>
-          <p className="prose">
+          <p {...stylex.props(shared.prose)}>
             I started at 11, writing Discord bots for servers I hung around in. At 15 I sold my first project. A small
             exit, but a real one.
           </p>
-          <p className="prose">Along the way I competed at ISEF &apos;25 and published a paper in IEEE.</p>
+          <p {...stylex.props(shared.prose)}>
+            Along the way I competed at ISEF &apos;25 and published a paper in IEEE.
+          </p>
         </Lore>
 
-        <p className="prose">I write a blog when I learn something worth keeping.</p>
-        <Link href="/blog" className="chevron-link">
+        <p {...stylex.props(shared.prose)}>I write a blog when I learn something worth keeping.</p>
+        <Link href="/blog" {...stylex.props(shared.chevronLink, chevronLinkMarker)}>
           blog
           <Chevron />
         </Link>
 
-        <p className="prose">
+        <p {...stylex.props(shared.prose)}>
           Write to me at <EmailCopy address={EMAIL} />, or find me at{" "}
-          <a href="/x" target="_blank" rel="noreferrer" className="underline">
+          <a href="/x" target="_blank" rel="noreferrer" {...stylex.props(shared.underline)}>
             {X_HANDLE}
           </a>
           .
         </p>
 
-        <div className="rule" />
+        <div {...stylex.props(shared.rule)} />
         <Shelf />
       </GameGate>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(structuredData) }} />

@@ -55,7 +55,6 @@ const NEAR = "#3A3A3A";
 const GROUND = "#141414";
 const SUN = "#6A6A6A";
 
-// a grey's index is how many of the 16 bayer cells it lights
 const LEVELS = [
   SKY,
   "#F2F2F2",
@@ -159,7 +158,6 @@ export function patternFills(shapes: readonly Shape[], dark: boolean): string[] 
   return [...new Set(shapes.map((shape) => shape.fill))].filter((fill) => paintOf(fill, dark) === "pattern");
 }
 
-/** Lit cells of one bayer tile for this fill, as [column, row]. */
 export function ditherCells(fill: string, dark: boolean): [number, number][] {
   const density = densityOf(fill, dark);
   const cells: [number, number][] = [];
@@ -293,7 +291,6 @@ function smooth(rnd: () => number, w: number, y0: number, amp: number, n: number
   return pts;
 }
 
-// each painter must keep its order of rnd() calls, or every existing seed redraws differently
 const PAINTERS: Record<Kind, (s: Sketch) => void> = {
   bells({ w, h, rnd, band, ground, drawSun }) {
     drawSun();

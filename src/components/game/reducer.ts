@@ -53,7 +53,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case "model": {
-      // a reply that lands after a reset belongs to the previous game
       if (!state.thinking || !hasRoom(state.board, action.reply.move)) return state;
       const board = clone(state.board);
       const row = drop(board, action.reply.move, SECOND);

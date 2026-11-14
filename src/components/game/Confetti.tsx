@@ -1,6 +1,8 @@
+import * as stylex from "@stylexjs/stylex";
 import { useEffect } from "react";
+import { colors, tints } from "@/styles/tokens.stylex";
 
-const PALETTE = ["--red", "--tint-sage", "--tint-sky", "--tint-manila", "--tint-blush", "--tint-mint", "--ink"];
+const PALETTE = [colors.red, tints.sage, tints.sky, tints.manila, tints.blush, tints.mint, colors.ink];
 const FALLBACK_COLOR = "#d9472b";
 
 const DURATION = 3200;
@@ -35,19 +37,15 @@ export function Confetti() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const theme = getComputedStyle(document.documentElement);
-    const colors = PALETTE.map((token) => theme.getPropertyValue(token).trim() || FALLBACK_COLOR);
-
     canvas.setAttribute("aria-hidden", "true");
-    Object.assign(canvas.style, {
-      position: "fixed",
-      inset: "0",
-      width: "100%",
-      height: "100%",
-      pointerEvents: "none",
-      zIndex: "50",
-    });
+    canvas.className = stylex.props(styles.canvas).className ?? "";
     document.body.appendChild(canvas);
+
+    const pieceColors = PALETTE.map((token) => {
+      canvas.style.color = token;
+      return getComputedStyle(canvas).color || FALLBACK_COLOR;
+    });
+    canvas.style.removeProperty("color");
 
     const dpr = Math.min(MAX_DPR, window.devicePixelRatio || 1);
     const resize = () => {
@@ -73,7 +71,7 @@ export function Confetti() {
           h: size * (0.5 + Math.random() * 0.7),
           rotation: Math.random() * Math.PI,
           spin: (Math.random() - 0.5) * 6,
-          color: colors[Math.floor(Math.random() * colors.length)],
+          color: pieceColors[Math.floor(Math.random() * pieceColors.length)],
           wobble: Math.random() * Math.PI * 2,
           born: now,
         });
@@ -136,3 +134,14 @@ export function Confetti() {
 
   return null;
 }
+
+const styles = stylex.create({
+  canvas: {
+    position: "fixed",
+    inset: 0,
+    inlineSize: "100%",
+    blockSize: "100%",
+    pointerEvents: "none",
+    zIndex: 50,
+  },
+});

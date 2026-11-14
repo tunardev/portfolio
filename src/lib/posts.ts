@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { Marked } from "marked";
+import { Marked, Renderer } from "marked";
 
 import { GLYPHS, type GlyphName } from "@/lib/glyphs";
 import { readingTime } from "@/lib/reading-time";
@@ -16,7 +16,15 @@ export type Post = {
   updated: string | null;
   tags: string[];
   words: number;
+  markdown: string;
   html: string;
+};
+
+export type PostElementClassNames = {
+  link?: string;
+  code?: string;
+  heading2?: string;
+  list?: string;
 };
 
 const POSTS_DIR = path.join(process.cwd(), "content", "blog");
@@ -28,18 +36,42 @@ const UNSAFE_URL = /^\s*(?:javascript|vbscript|data):/i;
 const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
 
-// the rendered html goes into the page and the rss feed unsanitized, so raw html in a post is shown as text
-const postMarkdown = new Marked({
-  gfm: true,
-  renderer: {
-    html: ({ text }) => escapeHtml(text),
-  },
-  walkTokens(token) {
-    if ((token.type === "link" || token.type === "image") && UNSAFE_URL.test(token.href)) {
-      throw new Error(`refusing to render a ${token.type} to ${token.href}`);
-    }
-  },
-});
+function addClassName(html: string, tagName: string, className: string | undefined) {
+  const openingTag = `<${tagName}`;
+  if (!className || !html.startsWith(openingTag)) return html;
+  return `${openingTag} class="${escapeHtml(className)}"${html.slice(openingTag.length)}`;
+}
+
+function createPostMarked(classNames: PostElementClassNames) {
+  return new Marked({
+    gfm: true,
+    renderer: {
+      html: ({ text }) => escapeHtml(text),
+      link(token) {
+        return addClassName(Renderer.prototype.link.call(this, token), "a", classNames.link);
+      },
+      codespan(token) {
+        return addClassName(Renderer.prototype.codespan.call(this, token), "code", classNames.code);
+      },
+      heading(token) {
+        const html = Renderer.prototype.heading.call(this, token);
+        return token.depth === 2 ? addClassName(html, "h2", classNames.heading2) : html;
+      },
+      list(token) {
+        return addClassName(Renderer.prototype.list.call(this, token), token.ordered ? "ol" : "ul", classNames.list);
+      },
+    },
+    walkTokens(token) {
+      if ((token.type === "link" || token.type === "image") && UNSAFE_URL.test(token.href)) {
+        throw new Error(`refusing to render a ${token.type} to ${token.href}`);
+      }
+    },
+  });
+}
+
+export function renderMarkdown(markdown: string, classNames: PostElementClassNames = {}): string {
+  return createPostMarked(classNames).parse(markdown, { async: false });
+}
 
 const DAY_MS = 86_400_000;
 const utcMidnight = (iso: string) => new Date(`${iso}T00:00:00Z`);
@@ -47,7 +79,6 @@ const utcMidnight = (iso: string) => new Date(`${iso}T00:00:00Z`);
 function isoDate(value: unknown, field: string, file: string): string | null {
   if (value === undefined || value === null || value === "") return null;
 
-  // yaml turns a timestamp with an offset into utc, which can land on a different calendar day
   if (value instanceof Date && value.getTime() % DAY_MS !== 0) {
     throw new Error(`${file}: ${field} must be a plain YYYY-MM-DD date`);
   }
@@ -113,7 +144,8 @@ export async function parsePost(file: string, raw: string): Promise<Post> {
     updated: isoDate(data.updated, "updated", file),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     words,
-    html: await postMarkdown.parse(content),
+    markdown: content,
+    html: renderMarkdown(content),
   };
 }
 

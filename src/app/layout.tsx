@@ -1,7 +1,10 @@
+import * as stylex from "@stylexjs/stylex";
 import type { Metadata, Viewport } from "next";
 import { Geist, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AUTHOR, PROFILES, SITE_DESCRIPTION, SITE_NAME, SITE_URL, X_HANDLE } from "@/lib/site";
+import { themeMarker } from "@/styles/markers.stylex";
+import { colors, fonts, fontSizes, lineHeights } from "@/styles/tokens.stylex";
 import "./globals.css";
 
 const sans = Geist({
@@ -82,18 +85,37 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const { className, ...rootProps } = stylex.props(styles.root, themeMarker);
+
   return (
-    <html lang="en" className={`${sans.variable} ${serif.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${sans.variable} ${serif.variable} ${className}`}
+      {...rootProps}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BEFORE_PAINT }} />
         {PROFILES.map((profile) => (
           <link key={profile} rel="me" href={profile} />
         ))}
       </head>
-      <body>
+      <body {...stylex.props(styles.body)}>
         {children}
         <Analytics />
       </body>
     </html>
   );
 }
+
+const styles = stylex.create({
+  root: {
+    color: colors.ink,
+    backgroundColor: colors.paper,
+  },
+  body: {
+    fontFamily: fonts.sans,
+    fontSize: fontSizes.body,
+    lineHeight: lineHeights.body,
+  },
+});

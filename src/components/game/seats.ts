@@ -16,7 +16,6 @@ export type SeatMap = { ink: string | null; red: string | null; spectators: stri
 
 export const EMPTY_SEATS: SeatMap = { ink: null, red: null, spectators: [] };
 
-// code-unit order, not localeCompare: every client must agree regardless of its locale
 const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
 export function seatOrder(occupants: Occupant[]): Occupant[] {

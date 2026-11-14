@@ -22,7 +22,6 @@ function item(post: Post) {
 }
 
 export function renderFeed(posts: Post[]) {
-  // any post can carry the newest edit, not just the newest post
   const lastChange = posts
     .map((post) => post.updated ?? post.date)
     .sort()

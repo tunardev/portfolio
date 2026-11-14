@@ -18,7 +18,6 @@ export function useModelGame(onStats: (stats: Stats) => void) {
   const [trainedOn, setTrainedOn] = useState<string | null>(null);
   const net = useRef<Net | null>(null);
   const replyTimer = useRef<number | undefined>(undefined);
-  // bumped on reset and unmount so a reply already in flight lands nowhere
   const generation = useRef(0);
 
   useEffect(

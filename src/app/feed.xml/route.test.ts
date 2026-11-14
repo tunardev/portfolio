@@ -127,6 +127,7 @@ function post(overrides: Partial<Post>): Post {
     updated: null,
     tags: [],
     words: 10,
+    markdown: "Body",
     html: "<p>Body</p>",
     ...overrides,
   };

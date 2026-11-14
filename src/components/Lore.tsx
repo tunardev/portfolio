@@ -1,28 +1,68 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { type ReactNode, useId, useState } from "react";
+import { chevronLinkMarker } from "@/styles/markers.stylex";
+import { shared } from "@/styles/shared";
+import { colors, durations, easings, spacing } from "@/styles/tokens.stylex";
 import { Chevron } from "./Chevron";
-import styles from "./Lore.module.css";
 
 export function Lore({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const bodyId = useId();
 
   return (
-    <div className={styles.lore}>
+    <div {...stylex.props(styles.lore)}>
       <button
         type="button"
-        className={`chevron-link ${styles.toggle}`}
-        aria-expanded={open}
+        {...stylex.props(shared.chevronLink, chevronLinkMarker, styles.toggle)}
+        aria-expanded={isOpen}
         aria-controls={bodyId}
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
+        onClick={() => setIsOpen((wasOpen) => !wasOpen)}
       >
         how I got here
-        <Chevron direction="down" />
+        <Chevron direction="down" style={isOpen && styles.chevronOpen} />
       </button>
-      <div id={bodyId} className={styles.body} data-open={open || undefined} inert={!open}>
-        <div className={styles.inner}>{children}</div>
+      <div id={bodyId} {...stylex.props(styles.body, isOpen && styles.bodyOpen)} inert={!isOpen}>
+        <div {...stylex.props(styles.inner, isOpen && styles.innerOpen)}>{children}</div>
       </div>
     </div>
   );
 }
+
+const styles = stylex.create({
+  lore: {
+    display: "flex",
+    flexDirection: "column",
+    inlineSize: "100%",
+  },
+  toggle: {
+    alignSelf: "flex-start",
+  },
+  chevronOpen: {
+    transform: "rotate(180deg)",
+  },
+  body: {
+    display: "grid",
+    gridTemplateRows: "0fr",
+    transition: `grid-template-rows ${durations.calm} ${easings.out}`,
+  },
+  bodyOpen: {
+    gridTemplateRows: "1fr",
+  },
+  inner: {
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    gap: spacing.md,
+    marginBlockStart: 0,
+    paddingInlineStart: spacing.xxl,
+    borderInlineStartWidth: "1px",
+    borderInlineStartStyle: "solid",
+    borderInlineStartColor: colors.line,
+    transition: `margin-block-start ${durations.calm} ${easings.out}`,
+  },
+  innerOpen: {
+    marginBlockStart: spacing.md,
+  },
+});

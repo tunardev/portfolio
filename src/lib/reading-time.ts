@@ -35,8 +35,6 @@ export function readingTime(markdown: string): ReadingTime {
     .replace(EMPHASIS, "")
     .replace(/\s+/g, " ")
     .trim();
-
-  // stray punctuation such as a spaced dash or a table pipe is not a word
   const words = prose.split(" ").filter((token) => HAS_WORD_CHARACTER.test(token)).length;
 
   const seconds =

@@ -22,7 +22,6 @@ function subscribe(onChange: () => void) {
   };
 }
 
-/** The theme the page is painted in, or null while rendering on the server and hydrating. */
 export function useTheme(): Theme | null {
   return useSyncExternalStore(subscribe, readTheme, () => null);
 }
